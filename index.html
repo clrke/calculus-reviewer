@@ -653,35 +653,92 @@
   }
 
   // =========================================================================
-  // LEVEL 0 — plain multiple choice (function -> derivative)
+  // LEVEL 0 — plain multiple choice, deliberately the simplest tier: one
+  // power-rule term (x², a·xⁿ) or the bare abstract rule pattern (u·v, u/v),
+  // never a multi-term polynomial — those live in Level 1's matching pool.
   // =========================================================================
+  const L0_GENERATORS = [
+    // constant
+    function () {
+      const c = rnd(2, 12) * pick([1, -1]);
+      const opts = makeOptions({ label: "f′(x) = 0", val: 0 }, [
+        { label: "f′(x) = " + numToStr(c), val: c },
+        { label: "f′(x) = 1", val: 1 },
+        { label: "f′(x) = x", val: "x" },
+        { label: "f′(x) = " + numToStr(-c), val: -c }
+      ]);
+      return {
+        fLabel: "f(x) = " + numToStr(c),
+        options: opts.options, correctIndex: opts.correctIndex,
+        isConstant: true, constValue: c
+      };
+    },
+    // linear
+    function () {
+      const a = rnd(2, 9), b = rnd(1, 9) * pick([1, -1]);
+      const opts = makeOptions({ label: "f′(x) = " + numToStr(a), val: a }, [
+        { label: "f′(x) = " + numToStr(b), val: b },
+        { label: "f′(x) = " + numToStr(a + b), val: a + b },
+        { label: "f′(x) = " + numToStr(-a), val: -a },
+        { label: "f′(x) = " + formatLinear(a, b), val: "unchanged" }
+      ]);
+      return { fLabel: "f(x) = " + formatLinear(a, b), options: opts.options, correctIndex: opts.correctIndex };
+    },
+    // simple power: x^n
+    function () {
+      const n = rnd(2, 5);
+      const opts = makeOptions(
+        { label: "f′(x) = " + formatMono(n, n - 1), val: n + "_" + (n - 1) },
+        [
+          { label: "f′(x) = " + formatMono(1, n - 1), val: "1_" + (n - 1) },
+          { label: "f′(x) = " + formatMono(n, n), val: n + "_" + n },
+          { label: "f′(x) = " + formatMono(n - 1, n - 1), val: (n - 1) + "_" + (n - 1) },
+          { label: "f′(x) = " + formatMono(n + 1, n - 1), val: (n + 1) + "_" + (n - 1) }
+        ]
+      );
+      return { fLabel: "f(x) = " + formatMono(1, n), options: opts.options, correctIndex: opts.correctIndex };
+    },
+    // coefficient power: a * x^n
+    function () {
+      const a = rnd(2, 9), n = rnd(2, 5);
+      const opts = makeOptions(
+        { label: "f′(x) = " + formatMono(a * n, n - 1), val: (a * n) + "_" + (n - 1) },
+        [
+          { label: "f′(x) = " + formatMono(a, n - 1), val: a + "_" + (n - 1) },
+          { label: "f′(x) = " + formatMono(a * n, n), val: (a * n) + "_" + n },
+          { label: "f′(x) = " + formatMono(a, n), val: a + "_" + n },
+          { label: "f′(x) = " + formatMono(n, n - 1), val: n + "_" + (n - 1) }
+        ]
+      );
+      return { fLabel: "f(x) = " + formatMono(a, n), options: opts.options, correctIndex: opts.correctIndex };
+    },
+    // product rule pattern (abstract, no numbers - matches q_L2_productPattern)
+    function () {
+      const options = shuffle(["f′(x) = u′v + uv′", "f′(x) = u′v " + MINUS + " uv′", "f′(x) = u′v′", "f′(x) = uv′ " + MINUS + " u′v"]);
+      return { fLabel: "f(x) = u · v", options, correctIndex: options.indexOf("f′(x) = u′v + uv′") };
+    },
+    // quotient rule pattern (abstract, no numbers - matches q_L2_quotientPattern)
+    function () {
+      const options = shuffle([
+        "f′(x) = (u′v " + MINUS + " uv′)/v²", "f′(x) = (u′v + uv′)/v²",
+        "f′(x) = (uv′ " + MINUS + " u′v)/v²", "f′(x) = (u′v " + MINUS + " uv′)/v"
+      ]);
+      return { fLabel: "f(x) = u / v", options, correctIndex: options.indexOf("f′(x) = (u′v " + MINUS + " uv′)/v²") };
+    }
+  ];
+
   function generateLevel0(numQuestions) {
-    numQuestions = numQuestions || 5;
+    numQuestions = numQuestions || L0_GENERATORS.length;
+    const pool = shuffle(L0_GENERATORS.slice());
     const questions = [];
     for (let i = 0; i < numQuestions; i++) {
-      const item = pick(L1_GENERATORS)();
-      const seen = new Set([item.dLabel]);
-      const distractors = [];
-      let tries = 0;
-      while (distractors.length < 3 && tries < 40) {
-        tries++;
-        const other = pick(L1_GENERATORS)();
-        if (!seen.has(other.dLabel)) {
-          seen.add(other.dLabel);
-          distractors.push(other.dLabel);
-        }
-      }
-      while (distractors.length < 3) {
-        // near-impossible fallback if the pool ran dry of unique labels
-        distractors.push(item.dLabel + "​".repeat(distractors.length + 1));
-      }
-      const options = shuffle([item.dLabel, ...distractors]);
+      const gen = pool[i % pool.length];
+      const item = gen();
       questions.push({
         fLabel: item.fLabel,
-        dLabel: item.dLabel,
-        options,
-        correctIndex: options.indexOf(item.dLabel),
-        isConstant: item.dLabel === "f′(x) = 0",
+        options: item.options,
+        correctIndex: item.correctIndex,
+        isConstant: !!item.isConstant,
         constValue: item.constValue
       });
     }
@@ -1417,7 +1474,7 @@
     } else {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
-        <div class="reveal-stage"><div class="reveal-answer">${escapeHtml(q.dLabel)}</div></div>`;
+        <div class="reveal-stage"><div class="reveal-answer">${escapeHtml(q.options[q.correctIndex])}</div></div>`;
     }
 
     const overlay = document.createElement("div");
