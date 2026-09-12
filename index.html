@@ -905,6 +905,7 @@
     return {
       level: 2, type: "blanks",
       renderPrompt: "f(x) = x² · " + vDisplay + "   [u = x², v = " + vDisplay + "]",
+      hint: "u′ and v′ are both easy here — the real skill being tested is combining them with the product rule pattern.",
       renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
       blanks: [
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
@@ -933,6 +934,7 @@
     return {
       level: 2, type: "blanks",
       renderPrompt: "f(x) = x² / " + vDisplay + "   [u = x², v = " + vDisplay + "]",
+      hint: "u′ and v′ are both easy here — the real skill being tested is combining them with the quotient rule pattern.",
       renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
       blanks: [
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
@@ -945,14 +947,57 @@
     };
   }
 
-  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule, q_L2_simpleProduct, q_L2_simpleQuotient];
+  // Bridge for the OTHER first-time skill combination Level 3 demands: chain
+  // rule wrapping a two-term inner function (x² + ax), which needs its own
+  // power-rule/sum-rule differentiation before the outer chain factor even
+  // applies. Level 2's plain chain rule only ever uses a linear inner (ax+b),
+  // so this gap was real too — fixed outer power n=2 keeps that part trivial.
+  function q_L2_simpleChainSum() {
+    const a = rnd(2, 9) * pick([1, -1]);
+    const n = 2;
+    const g = (x) => Math.pow(x, 2) + a * x;
+    const f = (x) => Math.pow(g(x), n);
+    const gPrimeCoef = 2, gPrimeConst = a;
+    const b1 = makeOptions(
+      { label: formatLinear(gPrimeCoef, gPrimeConst), val: gPrimeCoef + "_" + gPrimeConst },
+      [
+        { label: formatLinear(1, gPrimeConst), val: "1_" + gPrimeConst },
+        { label: formatLinear(gPrimeCoef, -gPrimeConst), val: gPrimeCoef + "_" + (-gPrimeConst) },
+        { label: formatMono(gPrimeCoef, 1), val: gPrimeCoef + "_0" }
+      ]
+    );
+    const b2 = makeOptions({ label: numToStr(n), val: n }, numDistractors(n, [-1, 1, 2]));
+    const b3 = makeOptions({ label: numToStr(n - 1), val: n - 1 }, numDistractors(n - 1, [1, 2, -1]));
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: "f(x) = (x² " + (a < 0 ? MINUS + " " + Math.abs(a) + "x" : "+ " + a + "x") + ")" + sup(n) + "   [let g(x) = x² " + (a < 0 ? MINUS + " " + Math.abs(a) + "x" : "+ " + a + "x") + "]",
+      hint: "First differentiate g(x) itself (power rule on x², plus the ax term) — then multiply by the outer chain-rule factor.",
+      renderTemplate: "g′(x) = {b1}     f′(x) = {b2} · g(x){b3:sup} · g′(x)",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => n * Math.pow(g(x), n - 1) * (gPrimeCoef * x + gPrimeConst),
+      _f: f
+    };
+  }
+
+  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule, q_L2_simpleProduct, q_L2_simpleQuotient, q_L2_simpleChainSum];
 
   function generateLevel2(numQuestions) {
     numQuestions = numQuestions || 5;
-    const pool = shuffle(L2_TEMPLATES.slice());
+    // Guarantee every attempt actually practices combining rules (not left to
+    // random draw luck) — these bridge templates exist specifically to prepare
+    // for Level 3, so skipping them defeats the point. Always include them,
+    // placed LAST so they land right before the student would move to Level 3.
+    const guaranteed = shuffle([q_L2_simpleProduct, q_L2_simpleChainSum, q_L2_simpleQuotient]);
+    const rest = shuffle(L2_TEMPLATES.filter(t => !guaranteed.includes(t)));
+    const remainingSlots = Math.max(0, numQuestions - guaranteed.length);
     const chosen = [];
-    for (let i = 0; i < numQuestions; i++) chosen.push(pool[i % pool.length]());
-    return chosen;
+    for (let i = 0; i < remainingSlots; i++) chosen.push(rest[i % rest.length]());
+    for (const gen of guaranteed) chosen.push(gen());
+    return chosen.slice(0, numQuestions);
   }
 
   // =========================================================================
@@ -1328,7 +1373,7 @@
   const LEVELS = [
     { num: 0, title: "Multiple Choice", desc: "Pick the correct derivative for each function out of 4 choices. The basics, one question at a time.", gen: () => QL.generateLevel0(6), kind: "mc" },
     { num: 1, title: "Mix & Match", desc: "Match each function to its correct derivative. Click a function, then click its matching derivative.", gen: () => QL.generateLevel1(6), kind: "match" },
-    { num: 2, title: "Fill-in-the-Blank (Single Rule)", desc: "Each numeric part of the derivative — coefficients, exponents, symbols — is a dropdown blank. One rule at a time.", gen: () => QL.generateLevel2(5), kind: "blanks" },
+    { num: 2, title: "Fill-in-the-Blank (Single Rule)", desc: "Each numeric part of the derivative — coefficients, exponents, symbols — is a dropdown blank. One rule at a time. Always ends with 3 short questions that rehearse combining rules, since that's what Level 3 asks for immediately.", gen: () => QL.generateLevel2(6), kind: "blanks" },
     { num: 3, title: "Combined (Up to 2 Layers)", desc: "Questions combine two rules — e.g. product rule with power rule, or chain rule wrapping a polynomial.", gen: () => QL.generateLevel3(5), kind: "blanks" },
     { num: 4, title: "Advanced (Up to 3 Layers)", desc: "Nested and compound derivatives requiring three combined rules — the hardest tier.", gen: () => QL.generateLevel4(5), kind: "blanks" }
   ];
