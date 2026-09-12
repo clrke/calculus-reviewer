@@ -144,7 +144,7 @@
 
   /* --- shape diagrams (shown with the question) & function/tangent graphs (shown after answering) --- */
   .q-diagram, .q-graph {
-    display: flex; justify-content: center; margin: -4px 0 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; margin: -4px 0 20px;
     background: #f7f9fc; border: 1px solid var(--border); border-radius: 12px; padding: 10px;
   }
   .diagram-svg, .fn-graph-svg { width: 100%; max-width: 280px; height: auto; }
@@ -182,8 +182,24 @@
   .fn-legend { font: 700 9px/1 "Cambria Math", Cambria, Georgia, serif; }
   .fn-legend-f { fill: var(--blue); }
   .fn-legend-df { fill: #e08a2b; }
-  .fn-legend-tangent { fill: var(--green); }
   .fn-legend-normal { fill: #b3261e; }
+  .fn-legend-tangent { fill: var(--green); }
+  .fn-legend-secant { fill: var(--gray); }
+  .fn-legend-hit { fill: var(--green); }
+  .fn-sweep-line { stroke: #e08a2b; stroke-width: 1.4; opacity: 0.85; }
+  .fn-line-secant { stroke: var(--gray); stroke-width: 1.6; stroke-dasharray: 4,3; fill: none; }
+  .fn-dot-q { fill: var(--gray); }
+  .diag-rect-nostroke { stroke: none; fill: rgba(47,95,168,0.16); }
+  .diag-line-cyl { stroke: var(--blue); stroke-width: 1.6; }
+  .diag-line-row { stroke: var(--blue); stroke-width: 2; }
+  .diag-line-walk { stroke: var(--green); stroke-width: 2.4; }
+  .diag-dot-accent { fill: var(--blue); }
+  .diag-shore { fill: rgba(224,138,43,0.18); }
+  .anim-pair {
+    display: flex; flex-wrap: wrap; gap: 8px 14px;
+    align-items: center; justify-content: center; width: 100%;
+  }
+  .anim-pair > svg { width: 280px; max-width: 100%; height: auto; }
   .template-line {
     font-size: 1.12rem; font-family: "Cambria Math", Cambria, Georgia, serif;
     line-height: 2.6; color: #222;
@@ -506,6 +522,18 @@
   .optcrit-arrow { font-size: 0.62rem; letter-spacing: 0.03em; color: #ff8a94; text-transform: uppercase; }
   .optcrit-answer { visibility: hidden; opacity: 0; color: #7dffb0; font-size: 1.5rem; text-shadow: 0 0 10px rgba(125,255,176,0.6); }
   .optcrit-answer.reveal { visibility: visible; animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
+  .steps-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 1.05rem; color: #fff; font-weight: 700;
+  }
+  .step-row {
+    opacity: 0; transform: translateY(8px) scale(0.96);
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+  }
+  .step-row.show { opacity: 1; transform: none; }
+  .step-answer { color: #7dffb0; font-size: 1.35rem; text-shadow: 0 0 10px rgba(125,255,176,0.6); }
+  .step-answer.show { animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
 
   /* --- generic reveal (structural / numeric fallback) --- */
   .reveal-stage { padding: 8px 4px 2px; }
@@ -1843,7 +1871,7 @@
       fLabel: "A farmer has " + P + "m of fencing for a rectangular field along a straight river (no fence needed along the river). Let x be each of the two sides perpendicular to the river, and y the side parallel to it. Find the dimensions of largest area.",
       options, correctIndex: options.indexOf(correct),
       optCritShape: true,
-      shape: { type: "fenceRiver", P, x: P / 4, y: P / 2 },
+      shape: { type: "fenceRiver", P },
       graph: {
         kind: "fn-deriv", fn: x => x * (P - 2 * x), dfn: x => P - 4 * x,
         xMin: 0, xMax: P / 2, xStar: P / 4,
@@ -1865,7 +1893,7 @@
       fLabel: "A rectangular field is enclosed by a fence and divided into 3 equal lots by 2 fences parallel to one side, using " + P + " ft of fencing total. Find the overall dimensions (total width by height) of the largest field.",
       options, correctIndex: options.indexOf(correct),
       optCritShape: true,
-      shape: { type: "threeLotFence", W: P / 4, H: P / 8 },
+      shape: { type: "threeLotFence", P },
       graph: {
         kind: "fn-deriv", fn: h => h * (P - 4 * h) / 2, dfn: h => (P - 8 * h) / 2,
         xMin: 0, xMax: P / 4, xStar: P / 8,
@@ -1899,7 +1927,7 @@
       fLabel: "A box is made from a " + L + "x" + W + " in cardboard sheet by cutting equal squares from the corners and folding up the sides. Find the side length of the square that maximizes the box's volume.",
       options: opts.options, correctIndex: opts.correctIndex,
       optCritShape: true,
-      shape: { type: "boxCutting", L, W, x: x0 },
+      shape: { type: "boxCutting", L, W },
       graph: {
         kind: "fn-deriv", fn: x => x * (L - 2 * x) * (W - 2 * x), dfn: x => L * W - 4 * (L + W) * x + 12 * x * x,
         xMin: 0, xMax: Math.min(L, W) / 2, xStar: x0,
@@ -1937,10 +1965,10 @@
       fLabel: "A rectangular page must contain " + k + " sq in of print, with " + a + "in margins on the left/right and " + b + "in margins on the top/bottom. Find the page dimensions that use the least paper.",
       options: opts.options, correctIndex: opts.correctIndex,
       optCritShape: true,
-      shape: { type: "pageMargins", a, b, t },
+      shape: { type: "pageMargins", a, b, k },
       graph: {
         kind: "fn-deriv", fn: x => (x + 2 * a) * (k / x + 2 * b), dfn: x => 2 * b - 2 * a * k / (x * x),
-        xMin: Math.max(0.5, a * t * 0.2), xMax: a * t * 2.2, xStar: a * t,
+        xMin: a * t * 0.5, xMax: a * t * 2, xStar: a * t,
         fnLabel: "T(x) = (x+2a)(k/x+2b)", dfnLabel: "T′(x) = 2b−2ak/x²"
       }
     };
@@ -1983,7 +2011,7 @@
       fLabel: "Find the height of the cylinder of maximum volume that can be inscribed in a right circular cone of radius " + R + " ft and height " + H + " ft.",
       options, correctIndex: options.indexOf(correct),
       optCritShape: true,
-      shape: { type: "coneCylinder", R, H, h: H / 3 },
+      shape: { type: "coneCylinder", R, H },
       graph: {
         kind: "fn-deriv", fn: h => h * (1 - h / H) * (1 - h / H), dfn: h => (1 - h / H) * (1 - 3 * h / H),
         xMin: 0, xMax: H, xStar: H / 3,
@@ -2027,7 +2055,7 @@
         " mph, find the angle (from the shortest path straight to shore) they should row to minimize total travel time.",
       options, correctIndex: options.indexOf(correct),
       optCritShape: true,
-      shape: { type: "rowboat", d, shoreDist, L, xStar },
+      shape: { type: "rowboat", d, shoreDist, L },
       graph: {
         kind: "fn-deriv", fn: x => Math.sqrt(d * d + x * x) / rowSpeed + (L - x) / walkSpeed,
         dfn: x => x / (rowSpeed * Math.sqrt(d * d + x * x)) - 1 / walkSpeed,
@@ -2378,7 +2406,13 @@
     return {
       fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f(x) = " + formatQuadratic(A, B, C),
+          "f′(x) = " + formatLinear(2 * A, B),
+          "f′(" + numToStr(x0) + ") = " + numToStr(slope)
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0: A * x0 * x0 + B * x0 + C,
         xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope, type: "tangent" }]
@@ -2387,12 +2421,15 @@
   }
 
   function q_tan_lineQuadratic() {
-    const A = rnd(1, 4) * pick([1, -1]);
-    const B = rnd(-6, 6);
-    const C = rnd(-6, 6);
-    const x0 = rnd(-5, 5);
+    let A, B, C, x0, m;
+    do {
+      A = rnd(1, 4) * pick([1, -1]);
+      B = rnd(-6, 6);
+      C = rnd(-6, 6);
+      x0 = rnd(-5, 5);
+      m = 2 * A * x0 + B;
+    } while (m === 0); // m = 0 renders as "y = 0 + b" and collapses two options onto one string
     const y0 = A * x0 * x0 + B * x0 + C;
-    const m = 2 * A * x0 + B;
     const b = y0 - m * x0;
     const correct = "y = " + formatLinear(m, b);
     const candidateLabels = [
@@ -2405,7 +2442,15 @@
     return {
       fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the equation of the tangent line to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f′(x) = " + formatLinear(2 * A, B),
+          "m = f′(" + numToStr(x0) + ") = " + numToStr(m),
+          "through (" + numToStr(x0) + ", " + numToStr(y0) + ")",
+          "y " + MINUS + " y" + sup(0) + " = m(x " + MINUS + " x" + sup(0) + ")",
+          correct
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0,
         xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope: m, type: "tangent" }]
@@ -2432,7 +2477,14 @@
     return {
       fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the slope of the line normal (perpendicular) to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f′(x) = " + formatLinear(2 * A, B),
+          "tangent m = f′(" + numToStr(x0) + ") = " + numToStr(m),
+          "normal: flip and negate",
+          MINUS + "1/m = " + correct
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0: A * x0 * x0 + B * x0 + C,
         xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope: -1 / m, type: "normal" }]
@@ -2460,7 +2512,15 @@
     return {
       fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the equation of the line normal to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f′(x) = " + formatLinear(2 * A, B),
+          "tangent m = " + numToStr(m),
+          "normal m = " + MINUS + "1/m = " + numToStr(mn),
+          "through (" + numToStr(x0) + ", " + numToStr(y0) + ")",
+          correct
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0,
         xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope: mn, type: "normal" }]
@@ -2479,7 +2539,14 @@
     return {
       fLabel: "f(x) = x³" + aPart + bPart + ". Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f(x) = x³" + aPart + bPart,
+          "f′(x) = 3x²" + (a < 0 ? " " + MINUS + " " + Math.abs(a) : " + " + a),
+          "f′(" + numToStr(x0) + ") = 3(" + numToStr(x0) + ")² " + (a < 0 ? MINUS + " " + Math.abs(a) : "+ " + a),
+          "= " + numToStr(slope)
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => x * x * x + a * x + b, x0, y0: x0 * x0 * x0 + a * x0 + b,
         xMin: x0 - 3, xMax: x0 + 3, lines: [{ slope, type: "tangent" }]
@@ -2501,7 +2568,14 @@
     return {
       fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the x-coordinate where the tangent line to f(x) is horizontal.",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f′(x) = " + formatLinear(2 * A, B),
+          "horizontal tangent ⇒ f′(x) = 0",
+          formatLinear(2 * A, B) + " = 0",
+          "x = " + numToStr(x0)
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0: A * x0 * x0 + B * x0 + C,
         xMin: x0 - 6, xMax: x0 + 6, lines: [{ slope: 0, type: "tangent" }]
@@ -2531,7 +2605,14 @@
     return {
       fLabel: "f(x) = " + numToStr(k) + "/(" + formatLinear(1, d) + "). Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f(x) = " + numToStr(k) + "(" + formatLinear(1, d) + ")" + sup(-1),
+          "f′(x) = " + numToStr(-k) + "/(" + formatLinear(1, d) + ")²",
+          "f′(" + numToStr(x0) + ") = " + numToStr(-k) + "/(" + numToStr(denom) + ")²",
+          "= " + correct
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => k / (x + d), x0, y0: k / denom,
         xMin, xMax, lines: [{ slope: -k / denomSq, type: "tangent" }]
@@ -2554,7 +2635,14 @@
     return {
       fLabel: "f(x) = " + coefPart + "√x. Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
       options: opts.options, correctIndex: opts.correctIndex,
-      tanNormalShape: true,
+      tanNormalShape: {
+        steps: [
+          "f(x) = " + coefPart + "√x   (power rule on x^½)",
+          "f′(x) = " + numToStr(A) + "/(2√x)",
+          "f′(" + numToStr(x0) + ") = " + numToStr(A) + "/(2·" + numToStr(sqrtX0) + ")",
+          "= " + correct
+        ]
+      },
       graph: {
         kind: "curve-line", curveFn: x => A * Math.sqrt(x), x0, y0: A * sqrtX0,
         xMin: 0, xMax: x0 + 15, lines: [{ slope: A / (2 * sqrtX0), type: "tangent" }]
@@ -2807,11 +2895,58 @@
     return pxPts.map(([x, y], i) => (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1)).join(" ");
   }
 
+  // =========================================================================
+  // SWEEP ANIMATIONS.
+  // Every animated panel drives ONE parameter t across its feasible range,
+  // walks back to the answer t*, and parks there for ~1s — so the last frame a
+  // student sees is always the correct configuration (same "hold the answer"
+  // contract as the mistake pop-ups' ANSWER_HOLD_MS).
+  // =========================================================================
+  const SWEEP_DUR = "5.2s";
+  const SWEEP_STEPS = 22;
+  const SWEEP_HOLD = 12;                 // repeated identical frames == a pause
+  let svgUid = 0;
+  const f1 = v => (Number.isFinite(v) ? Math.round(v * 10) / 10 : 0);
+
+  function sweepTs(tMin, tMax, tStar) {
+    const ts = [], step = (tMax - tMin) / SWEEP_STEPS;
+    for (let i = 0; i <= SWEEP_STEPS; i++) ts.push(tMin + step * i);
+    for (let i = SWEEP_STEPS - 1; i >= 0; i--) {
+      const t = tMin + step * i;
+      ts.push(t);
+      if (t <= tStar) break;
+    }
+    for (let i = 0; i < SWEEP_HOLD; i++) ts.push(tStar);
+    return ts;
+  }
+
+  // SMIL values-list animation. A non-finite sample (a shape degenerating at a
+  // domain endpoint, f(x) blowing up near an asymptote) is carried over from the
+  // last good frame rather than emitted as "NaN", which would void the whole
+  // animation element and freeze the panel.
+  function animAttr(attr, vals) {
+    let last = 0;
+    const cleaned = vals.map(v => {
+      if (typeof v === "string") return v;
+      if (!Number.isFinite(v)) return last.toFixed(2);
+      last = v;
+      return v.toFixed(2);
+    });
+    return `<animate attributeName="${attr}" values="${cleaned.join(";")}" dur="${SWEEP_DUR}" repeatCount="indefinite" calcMode="linear" />`;
+  }
+
+  // holds an element invisible until the sweep parks on the answer
+  function animFadeIn() {
+    return `<animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.74;0.82;1" dur="${SWEEP_DUR}" repeatCount="indefinite" />`;
+  }
+
   // f(x) (blue) and f'(x) (orange) plotted together, each independently
   // y-scaled to fill the box; a dashed guide marks the critical point x*
   // (where f'=0) with a dot landing on both curves — the visual punchline of
   // every optimization problem: "the derivative's zero IS the answer."
-  function functionGraphSvg(g) {
+  // animated=true adds a sweeping read-head that drags a dot along each curve
+  // and stops dead on x*.
+  function functionGraphSvg(g, animated) {
     const N = 48;
     const fPts = samplePoints(g.fn, g.xMin, g.xMax, N);
     const dPts = samplePoints(g.dfn, g.xMin, g.xMax, N);
@@ -2821,32 +2956,58 @@
     const dMin = Math.min(...dYs), dMax = Math.max(...dYs);
     const fPx = toPixels(fPts, g.xMin, g.xMax, fMin, fMax);
     const dPx = toPixels(dPts, g.xMin, g.xMax, dMin, dMax);
+    const X = x => GRAPH_PAD + (x - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = (y, lo, hi) => GRAPH_H - GRAPH_PAD - (y - lo) / ((hi - lo) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
     let zeroLine = "";
     if (dMin < 0 && dMax > 0) {
-      const zy = GRAPH_H - GRAPH_PAD - (0 - dMin) / (dMax - dMin) * (GRAPH_H - 2 * GRAPH_PAD);
+      const zy = Y(0, dMin, dMax);
       zeroLine = `<line x1="${GRAPH_PAD}" y1="${zy.toFixed(1)}" x2="${GRAPH_W - GRAPH_PAD}" y2="${zy.toFixed(1)}" class="fn-zero-line" />`;
     }
-    const critXpx = GRAPH_PAD + (g.xStar - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
-    const critFy = GRAPH_H - GRAPH_PAD - (g.fn(g.xStar) - fMin) / ((fMax - fMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
-    const critDy = GRAPH_H - GRAPH_PAD - (g.dfn(g.xStar) - dMin) / ((dMax - dMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const critXpx = X(g.xStar);
+    const critFy = Y(g.fn(g.xStar), fMin, fMax);
+    const critDy = Y(g.dfn(g.xStar), dMin, dMax);
+    // park the legend wherever the curves aren't: for a max-at-the-left problem
+    // a top-left legend box lands squarely on the peak, which is the one point
+    // the student needs to see.
+    const legY = fPx.concat(dPx).some(([x, y]) => x < 196 && y < 34) ? GRAPH_H - 30 : 2;
+    let dots, sweep = "", tail = "";
+    if (animated) {
+      const ts = sweepTs(g.xMin, g.xMax, g.xStar);
+      const xs = ts.map(X);
+      const fys = ts.map(t => Y(g.fn(t), fMin, fMax));
+      const dys = ts.map(t => Y(g.dfn(t), dMin, dMax));
+      sweep = `<line x1="${critXpx.toFixed(1)}" y1="6" x2="${critXpx.toFixed(1)}" y2="${GRAPH_H - 6}" class="fn-sweep-line">${animAttr("x1", xs)}${animAttr("x2", xs)}</line>`;
+      dots = `
+        <circle cx="${critXpx.toFixed(1)}" cy="${critFy.toFixed(1)}" r="3.6" class="fn-dot-f">${animAttr("cx", xs)}${animAttr("cy", fys)}</circle>
+        <circle cx="${critXpx.toFixed(1)}" cy="${critDy.toFixed(1)}" r="3.6" class="fn-dot-df">${animAttr("cx", xs)}${animAttr("cy", dys)}</circle>`;
+      tail = `<text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-hit" text-anchor="end" opacity="0">f′ = 0 ✓${animFadeIn()}</text>`;
+    } else {
+      dots = `
+        <circle cx="${critXpx.toFixed(1)}" cy="${critFy.toFixed(1)}" r="3.2" class="fn-dot-f" />
+        <circle cx="${critXpx.toFixed(1)}" cy="${critDy.toFixed(1)}" r="3.2" class="fn-dot-df" />`;
+    }
     return `
       <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
         ${zeroLine}
         <line x1="${critXpx.toFixed(1)}" y1="6" x2="${critXpx.toFixed(1)}" y2="${GRAPH_H - 6}" class="fn-crit-line" />
+        ${sweep}
         <path d="${pathFrom(fPx)}" class="fn-curve-f" />
         <path d="${pathFrom(dPx)}" class="fn-curve-df" />
-        <circle cx="${critXpx.toFixed(1)}" cy="${critFy.toFixed(1)}" r="3.2" class="fn-dot-f" />
-        <circle cx="${critXpx.toFixed(1)}" cy="${critDy.toFixed(1)}" r="3.2" class="fn-dot-df" />
-        <rect x="0" y="2" width="190" height="28" class="fn-legend-bg" />
-        <text x="6" y="12" class="fn-legend fn-legend-f">— ${escapeHtml(g.fnLabel || "f(x)")}</text>
-        <text x="6" y="26" class="fn-legend fn-legend-df">— ${escapeHtml(g.dfnLabel || "f′(x)")}</text>
+        ${dots}
+        ${tail}
+        <rect x="0" y="${legY}" width="190" height="28" class="fn-legend-bg" />
+        <text x="6" y="${legY + 10}" class="fn-legend fn-legend-f">— ${escapeHtml(g.fnLabel || "f(x)")}</text>
+        <text x="6" y="${legY + 24}" class="fn-legend fn-legend-df">— ${escapeHtml(g.dfnLabel || "f′(x)")}</text>
       </svg>`;
   }
 
   // The curve plus the actual tangent/normal line through (x0, y0) — for the
   // Tangent & Normal Lines exam. Y-range is padded to keep the whole line
   // segment in view even when its slope is steep relative to the curve.
-  function curveLineSvg(g) {
+  // animated=true first plays the definition of the derivative itself: a second
+  // point Q slides down the curve into P and the SECANT through them rotates
+  // into the tangent, after which the real answer line fades in on top.
+  function curveLineSvg(g, animated) {
     const N = 48;
     const cPts = samplePoints(g.curveFn, g.xMin, g.xMax, N);
     if (cPts.length < 2) return "";
@@ -2859,170 +3020,334 @@
     });
     if (yMax - yMin < 1e-6) { yMax += 1; yMin -= 1; }
     const cPx = toPixels(cPts, g.xMin, g.xMax, yMin, yMax);
-    const x0px = GRAPH_PAD + (g.x0 - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
-    const y0px = GRAPH_H - GRAPH_PAD - (g.y0 - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const X = x => GRAPH_PAD + (x - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = y => GRAPH_H - GRAPH_PAD - (y - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const x0px = X(g.x0), y0px = Y(g.y0);
     const lineSvgs = g.lines.map(line => {
       const y1 = g.y0 + line.slope * (g.xMin - g.x0);
       const y2 = g.y0 + line.slope * (g.xMax - g.x0);
       const pxPts = toPixels([[g.xMin, y1], [g.xMax, y2]], g.xMin, g.xMax, yMin, yMax);
       const cls = line.type === "normal" ? "fn-line-normal" : "fn-line-tangent";
-      return `<path d="${pathFrom(pxPts)}" class="${cls}" />`;
+      return `<path d="${pathFrom(pxPts)}" class="${cls}" ${animated ? 'opacity="0"' : ""}>${animated ? animFadeIn() : ""}</path>`;
     }).join("");
     const primaryType = g.lines[0].type;
+    const legY = cPx.some(([x, y]) => x < 116 && y < 34) ? GRAPH_H - 30 : 2;
+    const uid = "clip" + (++svgUid);
+    let secant = "";
+    if (animated) {
+      const roomR = g.xMax - g.x0, roomL = g.x0 - g.xMin;
+      const side = roomR >= roomL ? 1 : -1;
+      const room = Math.max(roomR, roomL);
+      const hEnd = room * 0.02, hMax = room * 0.8;
+      const hs = [];
+      for (let i = 0; i <= SWEEP_STEPS; i++) {
+        const u = i / SWEEP_STEPS;
+        hs.push(hEnd + (hMax - hEnd) * (1 - u) * (1 - u));   // eases INTO the limit
+      }
+      for (let i = 0; i < SWEEP_HOLD + 6; i++) hs.push(hEnd);
+      const qxs = hs.map(h => g.x0 + side * h);
+      const qys = qxs.map(x => g.curveFn(x));
+      const ms = qxs.map((x, i) => (qys[i] - g.y0) / ((x - g.x0) || 1e-9));
+      secant = `
+        <line x1="${GRAPH_PAD}" y1="0" x2="${GRAPH_W - GRAPH_PAD}" y2="0" class="fn-line-secant">${animAttr("y1", ms.map(m => Y(g.y0 + m * (g.xMin - g.x0))))}${animAttr("y2", ms.map(m => Y(g.y0 + m * (g.xMax - g.x0))))}</line>
+        <circle cx="0" cy="0" r="3.2" class="fn-dot-q">${animAttr("cx", qxs.map(X))}${animAttr("cy", qys.map(Y))}</circle>
+        <text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-secant" text-anchor="end">Q → P: secant → tangent</text>`;
+    }
     return `
       <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
-        <path d="${pathFrom(cPx)}" class="fn-curve-f" />
-        ${lineSvgs}
+        <defs><clipPath id="${uid}"><rect x="1" y="1" width="${GRAPH_W - 2}" height="${GRAPH_H - 2}" /></clipPath></defs>
+        <g clip-path="url(#${uid})">
+          <path d="${pathFrom(cPx)}" class="fn-curve-f" />
+          ${secant}
+          ${lineSvgs}
+        </g>
         <circle cx="${x0px.toFixed(1)}" cy="${y0px.toFixed(1)}" r="3.4" class="fn-dot-f" />
-        <rect x="0" y="2" width="110" height="28" class="fn-legend-bg" />
-        <text x="6" y="12" class="fn-legend fn-legend-f">— f(x)</text>
-        <text x="6" y="26" class="fn-legend ${primaryType === "normal" ? "fn-legend-normal" : "fn-legend-tangent"}">— ${primaryType === "normal" ? "normal line" : "tangent line"}</text>
+        <rect x="0" y="${legY}" width="110" height="28" class="fn-legend-bg" />
+        <text x="6" y="${legY + 10}" class="fn-legend fn-legend-f">— f(x)</text>
+        <text x="6" y="${legY + 24}" class="fn-legend ${primaryType === "normal" ? "fn-legend-normal" : "fn-legend-tangent"}">— ${primaryType === "normal" ? "normal line" : "tangent line"}</text>
       </svg>`;
   }
 
-  function graphSvgFor(q) {
+  function graphSvgFor(q, animated) {
     if (!q.graph) return "";
-    if (q.graph.kind === "fn-deriv") return functionGraphSvg(q.graph);
-    if (q.graph.kind === "curve-line") return curveLineSvg(q.graph);
+    if (q.graph.kind === "fn-deriv") return functionGraphSvg(q.graph, animated);
+    if (q.graph.kind === "curve-line") return curveLineSvg(q.graph, animated);
     return "";
   }
 
-  // ---- shape diagrams (Optimization exam): generic setup geometry only ----
-  function shapeSumOfSquares(s) {
-    const W = 240, H = 90, pad = 20, lineY = 50, splitFrac = 0.38;
-    const x1 = pad, x2 = W - pad;
-    const splitX = x1 + (x2 - x1) * splitFrac;
+  // =========================================================================
+  // SHAPE DIAGRAMS (Optimization exam).
+  // One geometry function per shape, rendered in two modes:
+  //   * static  (ts omitted)  — drawn WITH the question at an illustrative,
+  //     deliberately NON-optimal parameter, so it never leaks the answer;
+  //   * animated (ts = sweep) — drawn AFTER answering, sweeping the parameter
+  //     across its feasible range and parking on the optimum.
+  // Crucially, every INNER object's dimensions are computed from the problem's
+  // own constraint equation (w = B(1 − y/H) for the inscribed rectangle,
+  // r = R(1 − h/H) for the inscribed cylinder, and so on), so the inner object
+  // is always genuinely inside its container instead of being eyeballed.
+  // =========================================================================
+
+  function shapeSumOfSquares(s, ts) {
+    const W = 240, H = 130, pad = 22, lineY = 34, baseY = 116, sqMax = 46;
+    const x1 = pad, x2 = W - pad, span = x2 - x1;
+    const geo = t => {
+      const f = Math.max(0, Math.min(1, t / s.S));
+      const split = x1 + span * f;
+      const a = sqMax * f, b = sqMax * (1 - f);
+      return {
+        split, a, b, la: (x1 + split) / 2, lb: (split + x2) / 2,
+        ax: 116 - a, ay: baseY - a, by: baseY - b
+      };
+    };
+    const ill = geo(s.S * 0.3);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
       <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
         <line x1="${x1}" y1="${lineY}" x2="${x2}" y2="${lineY}" class="diag-line" />
-        <line x1="${x1}" y1="${lineY - 10}" x2="${x1}" y2="${lineY + 10}" class="diag-tick" />
-        <line x1="${x2}" y1="${lineY - 10}" x2="${x2}" y2="${lineY + 10}" class="diag-tick" />
-        <line x1="${splitX}" y1="${lineY - 14}" x2="${splitX}" y2="${lineY + 14}" class="diag-tick diag-tick-accent" />
-        <text x="${(x1 + splitX) / 2}" y="${lineY - 20}" class="diag-label" text-anchor="middle">x</text>
-        <text x="${(splitX + x2) / 2}" y="${lineY - 20}" class="diag-label" text-anchor="middle">S − x</text>
-        <text x="${(x1 + x2) / 2}" y="${lineY + 30}" class="diag-label diag-label-muted" text-anchor="middle">total = ${s.S}</text>
+        <line x1="${x1}" y1="${lineY - 8}" x2="${x1}" y2="${lineY + 8}" class="diag-tick" />
+        <line x1="${x2}" y1="${lineY - 8}" x2="${x2}" y2="${lineY + 8}" class="diag-tick" />
+        <line x1="${f1(ill.split)}" y1="${lineY - 12}" x2="${f1(ill.split)}" y2="${lineY + 12}" class="diag-tick diag-tick-accent">${A("x1", g => g.split)}${A("x2", g => g.split)}</line>
+        <text x="${f1(ill.la)}" y="${lineY - 16}" class="diag-label" text-anchor="middle">x${A("x", g => g.la)}</text>
+        <text x="${f1(ill.lb)}" y="${lineY - 16}" class="diag-label" text-anchor="middle">S − x${A("x", g => g.lb)}</text>
+        <rect x="${f1(ill.ax)}" y="${f1(ill.ay)}" width="${f1(ill.a)}" height="${f1(ill.a)}" class="diag-rect diag-rect-fill">${A("x", g => g.ax)}${A("y", g => g.ay)}${A("width", g => g.a)}${A("height", g => g.a)}</rect>
+        <rect x="124" y="${f1(ill.by)}" width="${f1(ill.b)}" height="${f1(ill.b)}" class="diag-rect diag-rect-fill">${A("y", g => g.by)}${A("width", g => g.b)}${A("height", g => g.b)}</rect>
+        <text x="${W / 2}" y="${H - 4}" class="diag-label diag-label-muted" text-anchor="middle">sum = ${s.S} — the two squares are x² and (S−x)²</text>
       </svg>`;
   }
 
-  function shapeFenceRiver() {
-    const W = 240, H = 130, left = 40, right = 200, top = 30, bottom = 100;
+  // x = each side perpendicular to the river, y = P − 2x along it.
+  function shapeFenceRiver(s, ts) {
+    const W = 240, H = 140, cx = 120, riverY = 36, maxH = 74, maxW = 168;
+    const P = s.P;
+    const geo = t => {
+      const h = maxH * (t / (P / 2)), w = maxW * ((P - 2 * t) / P);
+      return { h, w, left: cx - w / 2, right: cx + w / 2, bot: riverY + h };
+    };
+    const ill = geo((P / 2) * 0.3);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
       <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
-        <path d="M${left - 6},${top} q10,-10 20,0 q10,10 20,0 q10,-10 20,0 q10,10 20,0 q10,-10 20,0 q10,10 20,0 q10,-10 14,0" class="diag-river" />
-        <text x="${(left + right) / 2}" y="${top - 8}" class="diag-label diag-label-muted" text-anchor="middle">river (no fence)</text>
-        <line x1="${left}" y1="${top}" x2="${left}" y2="${bottom}" class="diag-line" />
-        <line x1="${right}" y1="${top}" x2="${right}" y2="${bottom}" class="diag-line" />
-        <line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" class="diag-line" />
-        <text x="${left - 14}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">x</text>
-        <text x="${right + 14}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">x</text>
-        <text x="${(left + right) / 2}" y="${bottom + 18}" class="diag-label" text-anchor="middle">y</text>
+        <path d="M14,${riverY - 10} q10,-8 20,0 q10,8 20,0 q10,-8 20,0 q10,8 20,0 q10,-8 20,0 q10,8 20,0 q10,-8 20,0 q10,8 20,0 q10,-8 14,0" class="diag-river" />
+        <text x="${cx}" y="${riverY - 16}" class="diag-label diag-label-muted" text-anchor="middle">river (no fence)</text>
+        <rect x="${f1(ill.left)}" y="${riverY}" width="${f1(ill.w)}" height="${f1(ill.h)}" class="diag-rect-fill diag-rect-nostroke">${A("x", g => g.left)}${A("width", g => g.w)}${A("height", g => g.h)}</rect>
+        <line x1="${f1(ill.left)}" y1="${riverY}" x2="${f1(ill.left)}" y2="${f1(ill.bot)}" class="diag-line">${A("x1", g => g.left)}${A("x2", g => g.left)}${A("y2", g => g.bot)}</line>
+        <line x1="${f1(ill.right)}" y1="${riverY}" x2="${f1(ill.right)}" y2="${f1(ill.bot)}" class="diag-line">${A("x1", g => g.right)}${A("x2", g => g.right)}${A("y2", g => g.bot)}</line>
+        <line x1="${f1(ill.left)}" y1="${f1(ill.bot)}" x2="${f1(ill.right)}" y2="${f1(ill.bot)}" class="diag-line">${A("x1", g => g.left)}${A("x2", g => g.right)}${A("y1", g => g.bot)}${A("y2", g => g.bot)}</line>
+        <text x="${f1(ill.left - 10)}" y="${f1(riverY + ill.h / 2)}" class="diag-label" text-anchor="middle">x${A("x", g => g.left - 10)}${A("y", g => riverY + g.h / 2)}</text>
+        <text x="${cx}" y="${f1(ill.bot + 14)}" class="diag-label" text-anchor="middle">y = P − 2x${A("y", g => g.bot + 14)}</text>
+        <text x="${cx}" y="${H - 4}" class="diag-label diag-label-muted" text-anchor="middle">fence total = ${s.P} m</text>
       </svg>`;
   }
 
-  function shapeThreeLotFence() {
-    const W = 240, H = 110, left = 30, right = 210, top = 20, bottom = 90;
-    const w1 = left + (right - left) / 3, w2 = left + 2 * (right - left) / 3;
+  // 3 lots: total fence P = 2W + 4h, so W = (P − 4h)/2 for a chosen height h.
+  function shapeThreeLotFence(s, ts) {
+    const W = 240, H = 136, cx = 120, bot = 98, maxH = 70, maxW = 176;
+    const P = s.P;
+    const geo = t => {
+      const h = maxH * (t / (P / 4)), w = maxW * ((P - 4 * t) / P);
+      return { h, w, left: cx - w / 2, top: bot - h, d1: cx - w / 6, d2: cx + w / 6 };
+    };
+    const ill = geo((P / 4) * 0.32);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
       <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
-        <rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}" class="diag-rect" />
-        <line x1="${w1}" y1="${top}" x2="${w1}" y2="${bottom}" class="diag-line diag-line-inner" />
-        <line x1="${w2}" y1="${top}" x2="${w2}" y2="${bottom}" class="diag-line diag-line-inner" />
-        <text x="${(left + right) / 2}" y="${top - 6}" class="diag-label" text-anchor="middle">W</text>
-        <text x="${right + 14}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">H</text>
+        <rect x="${f1(ill.left)}" y="${f1(ill.top)}" width="${f1(ill.w)}" height="${f1(ill.h)}" class="diag-rect diag-rect-fill">${A("x", g => g.left)}${A("y", g => g.top)}${A("width", g => g.w)}${A("height", g => g.h)}</rect>
+        <line x1="${f1(ill.d1)}" y1="${f1(ill.top)}" x2="${f1(ill.d1)}" y2="${bot}" class="diag-line diag-line-inner">${A("x1", g => g.d1)}${A("x2", g => g.d1)}${A("y1", g => g.top)}</line>
+        <line x1="${f1(ill.d2)}" y1="${f1(ill.top)}" x2="${f1(ill.d2)}" y2="${bot}" class="diag-line diag-line-inner">${A("x1", g => g.d2)}${A("x2", g => g.d2)}${A("y1", g => g.top)}</line>
+        <text x="${cx}" y="${bot + 15}" class="diag-label" text-anchor="middle">W = (P − 4h)/2</text>
+        <text x="${f1(ill.left - 12)}" y="${f1(bot - ill.h / 2)}" class="diag-label" text-anchor="middle">h${A("x", g => g.left - 12)}${A("y", g => bot - g.h / 2)}</text>
+        <text x="${cx}" y="${H - 4}" class="diag-label diag-label-muted" text-anchor="middle">fence total = ${s.P} ft (2 outer widths + 4 heights)</text>
       </svg>`;
   }
 
-  function shapeBoxCutting(s) {
-    const W = 240, H = 150, sheetW = 100, sheetH = 70, sx = 15, sy = 24, cut = 14;
+  // Flat sheet with x-by-x corner cuts, next to the box it folds into:
+  // base (L−2x) by (W−2x), height x — drawn in isometric projection.
+  function shapeBoxCutting(s, ts) {
+    const Wv = 240, Hv = 150, sx = 12, sy = 30;
+    const L = s.L, Wd = s.W;
+    const pxPerUnit = Math.min(92 / L, 78 / Wd);   // fit BOTH dimensions: sheets are often far from square
+    const sheetW = L * pxPerUnit, sheetH = Wd * pxPerUnit;
+    const isoScale = 78 / ((L + Wd) * 0.866);
+    const iso = (X, Y, Z) => [(X - Z) * 0.866 * isoScale, ((X + Z) * 0.5 - Y) * isoScale];
+    const geo = t => {
+      const cut = t * pxPerUnit;
+      const a = L - 2 * t, b = Wd - 2 * t, hgt = t;
+      const c = iso(a / 2, 0, b / 2);
+      const ox = 172 - c[0], oy = 92 - c[1];
+      const P = (X, Y, Z) => { const p = iso(X, Y, Z); return (p[0] + ox).toFixed(1) + "," + (p[1] + oy).toFixed(1); };
+      return {
+        cut,
+        top: [P(0, hgt, 0), P(a, hgt, 0), P(a, hgt, b), P(0, hgt, b)].join(" "),
+        right: [P(a, hgt, 0), P(a, hgt, b), P(a, 0, b), P(a, 0, 0)].join(" "),
+        front: [P(0, hgt, b), P(a, hgt, b), P(a, 0, b), P(0, 0, b)].join(" ")
+      };
+    };
+    const ill = geo(Math.min(L, Wd) / 2 * 0.3);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
+    const corner = (cxp, cyp, ax, ay) => `<rect x="${cxp}" y="${cyp}" width="${f1(ill.cut)}" height="${f1(ill.cut)}" class="diag-cut">${A("width", g => g.cut)}${A("height", g => g.cut)}${ax ? A("x", g => ax(g)) : ""}${ay ? A("y", g => ay(g)) : ""}</rect>`;
     return `
-      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
-        <rect x="${sx}" y="${sy}" width="${sheetW}" height="${sheetH}" class="diag-rect" />
-        <rect x="${sx}" y="${sy}" width="${cut}" height="${cut}" class="diag-cut" />
-        <rect x="${sx + sheetW - cut}" y="${sy}" width="${cut}" height="${cut}" class="diag-cut" />
-        <rect x="${sx}" y="${sy + sheetH - cut}" width="${cut}" height="${cut}" class="diag-cut" />
-        <rect x="${sx + sheetW - cut}" y="${sy + sheetH - cut}" width="${cut}" height="${cut}" class="diag-cut" />
-        <text x="${sx + sheetW / 2}" y="${sy - 8}" class="diag-label" text-anchor="middle">${s.L} × ${s.W} sheet</text>
-        <text x="${sx + cut / 2}" y="${sy + cut / 2 + 3}" class="diag-label diag-label-tiny" text-anchor="middle">x</text>
-        <g transform="translate(165,${H / 2 + 6})">
-          <polygon points="0,-20 40,-34 80,-20 40,-6" class="diag-iso-top" />
-          <polygon points="0,-20 0,20 40,34 40,-6" class="diag-iso-side" />
-          <polygon points="40,-6 40,34 80,20 80,-20" class="diag-iso-side-dark" />
-        </g>
-        <text x="205" y="${H - 12}" class="diag-label diag-label-muted" text-anchor="middle">folded box</text>
+      <svg class="diagram-svg" viewBox="0 0 ${Wv} ${Hv}">
+        <rect x="${sx}" y="${sy}" width="${f1(sheetW)}" height="${f1(sheetH)}" class="diag-rect" />
+        ${corner(sx, sy, null, null)}
+        ${corner(f1(sx + sheetW - ill.cut), sy, g => sx + sheetW - g.cut, null)}
+        ${corner(sx, f1(sy + sheetH - ill.cut), null, g => sy + sheetH - g.cut)}
+        ${corner(f1(sx + sheetW - ill.cut), f1(sy + sheetH - ill.cut), g => sx + sheetW - g.cut, g => sy + sheetH - g.cut)}
+        <text x="${f1(Math.max(sx + sheetW / 2, 50))}" y="${sy - 8}" class="diag-label diag-label-tiny" text-anchor="middle">${s.L} × ${s.W} sheet, cut x</text>
+        <polygon points="${ill.front}" class="diag-iso-side">${A("points", g => g.front)}</polygon>
+        <polygon points="${ill.right}" class="diag-iso-side-dark">${A("points", g => g.right)}</polygon>
+        <polygon points="${ill.top}" class="diag-iso-top">${A("points", g => g.top)}</polygon>
+        <text x="172" y="${Hv - 16}" class="diag-label diag-label-tiny" text-anchor="middle">box: (L−2x)(W−2x)·x</text>
       </svg>`;
   }
 
-  function shapePageMargins(s) {
-    const W = 240, H = 140, left = 60, right = 180, top = 15, bottom = 110, mx = 14, my = 10;
+  // print area x by k/x, page (x+2a) by (k/x+2b) — the print block is always
+  // exactly inset by the given margins.
+  function shapePageMargins(s, ts) {
+    const Wv = 240, Hv = 150, cx = 120, cy = 74;
+    const a = s.a, b = s.b, k = s.k;
+    const xStar = Math.sqrt(a * k / b);
+    const probe = ts || [xStar * 0.5, xStar, xStar * 2];
+    let maxW = 0, maxH = 0;
+    probe.forEach(t => {
+      maxW = Math.max(maxW, t + 2 * a);
+      maxH = Math.max(maxH, k / t + 2 * b);
+    });
+    const sc = Math.min(112 / maxW, 108 / maxH);
+    const geo = t => {
+      const pw = (t + 2 * a) * sc, ph = (k / t + 2 * b) * sc;
+      return {
+        pw, ph, px: cx - pw / 2, py: cy - ph / 2,
+        iw: t * sc, ih: (k / t) * sc, ix: cx - pw / 2 + a * sc, iy: cy - ph / 2 + b * sc
+      };
+    };
+    const ill = geo(xStar * 1.8);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
-      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
-        <rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}" class="diag-rect" />
-        <rect x="${left + mx}" y="${top + my}" width="${right - left - 2 * mx}" height="${bottom - top - 2 * my}" class="diag-rect diag-rect-fill" />
-        <text x="${(left + right) / 2}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">print area</text>
-        <text x="${(left + right) / 2}" y="${bottom + 20}" class="diag-label diag-label-muted" text-anchor="middle">margins: ${s.a}in (sides), ${s.b}in (top/bottom)</text>
+      <svg class="diagram-svg" viewBox="0 0 ${Wv} ${Hv}">
+        <rect x="${f1(ill.px)}" y="${f1(ill.py)}" width="${f1(ill.pw)}" height="${f1(ill.ph)}" class="diag-rect">${A("x", g => g.px)}${A("y", g => g.py)}${A("width", g => g.pw)}${A("height", g => g.ph)}</rect>
+        <rect x="${f1(ill.ix)}" y="${f1(ill.iy)}" width="${f1(ill.iw)}" height="${f1(ill.ih)}" class="diag-rect diag-rect-fill">${A("x", g => g.ix)}${A("y", g => g.iy)}${A("width", g => g.iw)}${A("height", g => g.ih)}</rect>
+        <text x="${cx}" y="${Hv - 18}" class="diag-label diag-label-tiny" text-anchor="middle">print x by ${k}/x, page (x+${2 * a}) by (${k}/x+${2 * b})</text>
+        <text x="${cx}" y="${Hv - 4}" class="diag-label diag-label-muted" text-anchor="middle">margins ${a}in sides, ${b}in top/bottom</text>
       </svg>`;
   }
 
-  function shapeInscribedRectangle(s) {
-    const W = 240, Hh = 140, baseY = 118, apexX = 120, apexY = 15, leftX = 25, rightX = 215, frac = 0.4;
-    const rectTopY = apexY + (baseY - apexY) * frac;
-    const rectHalfWidth = (rightX - leftX) / 2 * (1 - frac);
-    const midX = (leftX + rightX) / 2;
+  // Rectangle inscribed in a triangle: similar triangles force its width to be
+  // w = B(1 − y/H) at height y, so its top corners ride exactly on the sides.
+  function shapeInscribedRectangle(s, ts) {
+    const Wv = 240, Hv = 142, baseY = 116, apexY = 16, leftX = 26, rightX = 214;
+    const cx = (leftX + rightX) / 2, halfBase = (rightX - leftX) / 2, triH = baseY - apexY;
+    const geo = t => {
+      const frac = Math.max(0, Math.min(1, t / s.H));
+      const h = triH * frac;                 // rectangle height  = y
+      const half = halfBase * (1 - frac);    // half-width        = B(1 − y/H)/2
+      return { h, half, x: cx - half, y: baseY - h, w: 2 * half };
+    };
+    const ill = geo(s.H * 0.65);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
-      <svg class="diagram-svg" viewBox="0 0 ${W} ${Hh}">
-        <polygon points="${leftX},${baseY} ${rightX},${baseY} ${apexX},${apexY}" class="diag-tri" />
-        <rect x="${(midX - rectHalfWidth).toFixed(1)}" y="${rectTopY.toFixed(1)}" width="${(2 * rectHalfWidth).toFixed(1)}" height="${(baseY - rectTopY).toFixed(1)}" class="diag-rect diag-rect-fill" />
-        <text x="${midX}" y="${baseY + 16}" class="diag-label" text-anchor="middle">base B = ${s.B}</text>
-        <text x="${leftX - 12}" y="${(apexY + baseY) / 2}" class="diag-label diag-label-tiny" text-anchor="middle">H = ${s.H}</text>
+      <svg class="diagram-svg" viewBox="0 0 ${Wv} ${Hv}">
+        <polygon points="${leftX},${baseY} ${rightX},${baseY} ${cx},${apexY}" class="diag-tri" />
+        <rect x="${f1(ill.x)}" y="${f1(ill.y)}" width="${f1(ill.w)}" height="${f1(ill.h)}" class="diag-rect diag-rect-fill">${A("x", g => g.x)}${A("y", g => g.y)}${A("width", g => g.w)}${A("height", g => g.h)}</rect>
+        <text x="${cx}" y="${f1(ill.y - 5)}" class="diag-label diag-label-tiny" text-anchor="middle">w${A("y", g => g.y - 5)}</text>
+        <text x="${f1(ill.x - 9)}" y="${f1(baseY - ill.h / 2)}" class="diag-label diag-label-tiny" text-anchor="middle">y${A("x", g => g.x - 9)}${A("y", g => baseY - g.h / 2)}</text>
+        <text x="${cx}" y="${baseY + 14}" class="diag-label" text-anchor="middle">B = ${s.B} ft</text>
+        <text x="${cx}" y="${Hv - 4}" class="diag-label diag-label-muted" text-anchor="middle">H = ${s.H} ft — w = B(1 − y/H), A = y·w</text>
       </svg>`;
   }
 
-  function shapeConeCylinder(s) {
-    const W = 240, Hh = 150, cx = 120, topY = 25, botY = 118, rx = 70, ry = 16;
-    const apexY = topY - ry;
+  // Cylinder inscribed in a cone: the cone's cross-section at height h has
+  // radius r = R(1 − h/H), so the cylinder's top rim sits exactly ON the slant.
+  function shapeConeCylinder(s, ts) {
+    const Wv = 240, Hv = 156, cx = 120, apexY = 18, baseY = 116, R = 66, ryBase = 15;
+    const coneH = baseY - apexY;
+    const geo = t => {
+      const frac = Math.max(0, Math.min(1, t / s.H));
+      const r = R * (1 - frac);              // r = R(1 − h/H)
+      return {
+        r, h: coneH * frac, topY: baseY - coneH * frac, ry: ryBase * (1 - frac),
+        left: cx - R * (1 - frac), right: cx + R * (1 - frac)
+      };
+    };
+    const ill = geo(s.H * 0.55);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
-      <svg class="diagram-svg" viewBox="0 0 ${W} ${Hh}">
-        <ellipse cx="${cx}" cy="${botY}" rx="${rx}" ry="${ry}" class="diag-ellipse-base" />
-        <line x1="${cx - rx}" y1="${topY}" x2="${cx - rx}" y2="${botY}" class="diag-line" />
-        <line x1="${cx + rx}" y1="${topY}" x2="${cx + rx}" y2="${botY}" class="diag-line" />
-        <ellipse cx="${cx}" cy="${topY}" rx="${rx}" ry="${ry}" class="diag-ellipse-top" />
-        <line x1="${cx}" y1="${apexY}" x2="${cx - rx}" y2="${botY}" class="diag-line diag-line-inner" stroke-dasharray="4,3" />
-        <line x1="${cx}" y1="${apexY}" x2="${cx + rx}" y2="${botY}" class="diag-line diag-line-inner" stroke-dasharray="4,3" />
+      <svg class="diagram-svg" viewBox="0 0 ${Wv} ${Hv}">
+        <ellipse cx="${cx}" cy="${baseY}" rx="${R}" ry="${ryBase}" class="diag-ellipse-base" />
+        <line x1="${cx}" y1="${apexY}" x2="${cx - R}" y2="${baseY}" class="diag-line" />
+        <line x1="${cx}" y1="${apexY}" x2="${cx + R}" y2="${baseY}" class="diag-line" />
         <circle cx="${cx}" cy="${apexY}" r="2.2" class="diag-dot" />
-        <text x="${cx}" y="${botY + 24}" class="diag-label diag-label-muted" text-anchor="middle">cone (dashed) inside cylinder — R=${s.R}, H=${s.H}</text>
+        <rect x="${f1(ill.left)}" y="${f1(ill.topY)}" width="${f1(2 * ill.r)}" height="${f1(ill.h)}" class="diag-rect-fill diag-rect-nostroke">${A("x", g => g.left)}${A("y", g => g.topY)}${A("width", g => 2 * g.r)}${A("height", g => g.h)}</rect>
+        <line x1="${f1(ill.left)}" y1="${f1(ill.topY)}" x2="${f1(ill.left)}" y2="${baseY}" class="diag-line diag-line-cyl">${A("x1", g => g.left)}${A("x2", g => g.left)}${A("y1", g => g.topY)}</line>
+        <line x1="${f1(ill.right)}" y1="${f1(ill.topY)}" x2="${f1(ill.right)}" y2="${baseY}" class="diag-line diag-line-cyl">${A("x1", g => g.right)}${A("x2", g => g.right)}${A("y1", g => g.topY)}</line>
+        <ellipse cx="${cx}" cy="${f1(ill.topY)}" rx="${f1(ill.r)}" ry="${f1(ill.ry)}" class="diag-ellipse-top">${A("cy", g => g.topY)}${A("rx", g => g.r)}${A("ry", g => g.ry)}</ellipse>
+        <text x="${cx}" y="${f1(ill.topY - 6)}" class="diag-label diag-label-tiny" text-anchor="middle">r${A("y", g => g.topY - 6)}</text>
+        <text x="${f1(ill.left - 10)}" y="${f1(baseY - ill.h / 2)}" class="diag-label diag-label-tiny" text-anchor="middle">h${A("x", g => g.left - 10)}${A("y", g => baseY - g.h / 2)}</text>
+        <text x="${cx}" y="${Hv - 18}" class="diag-label" text-anchor="middle">cone R = ${s.R} ft, H = ${s.H} ft</text>
+        <text x="${cx}" y="${Hv - 4}" class="diag-label diag-label-muted" text-anchor="middle">V = πr²h = πR²(1 − h/H)²h</text>
       </svg>`;
   }
 
-  function shapeRowboat(s) {
-    const shoreY = 108, boatX = 40, boatY = 26, destX = 208, landX = 118;
+  // Row to a landing point x along the shore, then walk the remaining L − x.
+  function shapeRowboat(s, ts) {
+    const Wv = 240, Hv = 142, shoreY = 104, boatX = 28, boatY = 30, destX = 214;
+    const geo = t => {
+      const land = boatX + (destX - boatX) * (t / s.L);
+      return { land, rowMid: (boatX + land) / 2, walkMid: (land + destX) / 2 };
+    };
+    const ill = geo(s.L * 0.62);
+    const A = (attr, fn) => (ts ? animAttr(attr, ts.map(t => fn(geo(t)))) : "");
     return `
-      <svg class="diagram-svg" viewBox="0 0 240 140">
-        <line x1="10" y1="${shoreY}" x2="230" y2="${shoreY}" class="diag-line" />
-        <text x="120" y="${shoreY + 16}" class="diag-label diag-label-muted" text-anchor="middle">shore</text>
+      <svg class="diagram-svg" viewBox="0 0 ${Wv} ${Hv}">
+        <rect x="6" y="${shoreY}" width="228" height="18" class="diag-shore" />
+        <line x1="6" y1="${shoreY}" x2="234" y2="${shoreY}" class="diag-line" />
         <circle cx="${boatX}" cy="${boatY}" r="3.5" class="diag-dot" />
-        <text x="${boatX - 8}" y="${boatY - 8}" class="diag-label diag-label-tiny">boat</text>
+        <text x="${boatX - 4}" y="${boatY - 8}" class="diag-label diag-label-tiny">boat</text>
         <line x1="${boatX}" y1="${boatY}" x2="${boatX}" y2="${shoreY}" class="diag-line diag-line-inner" stroke-dasharray="3,3" />
-        <text x="${boatX - 16}" y="${(boatY + shoreY) / 2}" class="diag-label diag-label-tiny">d=${s.d}</text>
+        <text x="${boatX - 14}" y="${(boatY + shoreY) / 2}" class="diag-label diag-label-tiny">d=${s.d}</text>
         <circle cx="${destX}" cy="${shoreY}" r="3.5" class="diag-dot" />
-        <text x="${destX - 10}" y="${shoreY - 10}" class="diag-label diag-label-tiny">dest</text>
-        <line x1="${boatX}" y1="${boatY}" x2="${landX}" y2="${shoreY}" class="diag-line" />
-        <line x1="${landX}" y1="${shoreY}" x2="${destX}" y2="${shoreY}" class="diag-line" />
-        <text x="${(boatX + destX) / 2}" y="16" class="diag-label diag-label-muted" text-anchor="middle">straight-line dist = ${s.shoreDist}</text>
+        <text x="${destX - 6}" y="${shoreY - 8}" class="diag-label diag-label-tiny">dest</text>
+        <line x1="${boatX}" y1="${boatY}" x2="${f1(ill.land)}" y2="${shoreY}" class="diag-line diag-line-row">${A("x2", g => g.land)}</line>
+        <line x1="${f1(ill.land)}" y1="${shoreY}" x2="${destX}" y2="${shoreY}" class="diag-line diag-line-walk">${A("x1", g => g.land)}</line>
+        <circle cx="${f1(ill.land)}" cy="${shoreY}" r="3" class="diag-dot-accent">${A("cx", g => g.land)}</circle>
+        <text x="${f1(ill.rowMid + 16)}" y="${(boatY + shoreY) / 2 + 6}" class="diag-label diag-label-tiny" text-anchor="middle">row${A("x", g => g.rowMid + 16)}</text>
+        <text x="${f1(ill.walkMid)}" y="${shoreY + 14}" class="diag-label diag-label-tiny" text-anchor="middle">walk${A("x", g => g.walkMid)}</text>
+        <text x="${Wv / 2}" y="${Hv - 4}" class="diag-label diag-label-muted" text-anchor="middle">land x along shore, then walk L − x</text>
       </svg>`;
   }
 
-  function shapeSvgFor(shape) {
+  function shapeSvgFor(shape, ts) {
     switch (shape.type) {
-      case "sumOfSquares": return shapeSumOfSquares(shape);
-      case "fenceRiver": return shapeFenceRiver(shape);
-      case "threeLotFence": return shapeThreeLotFence(shape);
-      case "boxCutting": return shapeBoxCutting(shape);
-      case "pageMargins": return shapePageMargins(shape);
-      case "inscribedRectangle": return shapeInscribedRectangle(shape);
-      case "coneCylinder": return shapeConeCylinder(shape);
-      case "rowboat": return shapeRowboat(shape);
+      case "sumOfSquares": return shapeSumOfSquares(shape, ts);
+      case "fenceRiver": return shapeFenceRiver(shape, ts);
+      case "threeLotFence": return shapeThreeLotFence(shape, ts);
+      case "boxCutting": return shapeBoxCutting(shape, ts);
+      case "pageMargins": return shapePageMargins(shape, ts);
+      case "inscribedRectangle": return shapeInscribedRectangle(shape, ts);
+      case "coneCylinder": return shapeConeCylinder(shape, ts);
+      case "rowboat": return shapeRowboat(shape, ts);
       default: return "";
     }
+  }
+
+  // The post-answer panel: the shape and the graph sweep the SAME parameter in
+  // lockstep (identical ts list, identical 5.2s loop), so a student can watch
+  // "geometry changes -> objective curve moves -> derivative crosses zero"
+  // as one continuous story instead of three separate pictures.
+  function solutionPanelHtml(q) {
+    if (!q.graph) return "";
+    const isFn = q.graph.kind === "fn-deriv";
+    const ts = isFn ? sweepTs(q.graph.xMin, q.graph.xMax, q.graph.xStar) : null;
+    const shapeHtml = (isFn && q.shape) ? shapeSvgFor(q.shape, ts) : "";
+    const graphHtml = graphSvgFor(q, true);
+    if (!shapeHtml && !graphHtml) return "";
+    const title = isFn
+      ? "watch it move — the best shape is where f′ hits 0"
+      : "watch the secant collapse onto the tangent";
+    return `<div class="q-graph">
+        <div class="q-graph-title">${title}</div>
+        <div class="anim-pair">${shapeHtml}${graphHtml}</div>
+      </div>`;
   }
 
   function renderMcLevel() {
@@ -3054,7 +3379,7 @@
           <button class="btn-ghost" data-go-home>Exit to Menu</button>
         </div>
         ${state.mcAnswered ? `<div class="feedback-msg ${q.correctIndex === state.mcChosenIndex ? "correct" : "incorrect"}">${q.correctIndex === state.mcChosenIndex ? "✓ Correct!" : "✗ Not quite — the correct answer is highlighted."}</div>` : ""}
-        ${state.mcAnswered && q.graph ? `<div class="q-graph"><div class="q-graph-title">${q.graph.kind === "fn-deriv" ? "f(x) vs f′(x) — the critical point is the answer" : "the curve and the line you just solved for"}</div>${graphSvgFor(q)}</div>` : ""}
+        ${state.mcAnswered && q.graph ? solutionPanelHtml(q) : ""}
       </div>
     `;
 
@@ -3130,6 +3455,11 @@
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Reduce to One Variable</div>
         ${optCritStageHtml(escapeHtml(q.options[q.correctIndex]))}`;
+    } else if (q.tanNormalShape) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">${/normal/i.test(q.fLabel) ? "Normal = " + QL.MINUS + "1/m" : "Differentiate, then Plug In"}</div>
+        ${stepsStageHtml(q.tanNormalShape.steps)}`;
     } else {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
@@ -3151,6 +3481,7 @@
     else if (q.squeezeShape) loopTimer = attachSqueezeAnimation(overlay);
     else if (q.incrementShape) loopTimer = attachIncrAnimation(overlay);
     else if (q.optCritShape) loopTimer = attachOptCritAnimation(overlay);
+    else if (q.tanNormalShape) loopTimer = attachStepsAnimation(overlay);
 
     let dismissed = false;
     function dismiss() {
@@ -3310,6 +3641,31 @@
   const REVEAL_SETTLE_MS = 400;                // matches exp-land-bounce's 0.4s landing
   function cycleMs(finalRevealMs, minCycleMs) {
     return Math.max(finalRevealMs + REVEAL_SETTLE_MS + ANSWER_HOLD_MS, minCycleMs || 0);
+  }
+
+  // Generic "work the steps" chain: each line of the derivation drops in one
+  // after another, the last one landing as the answer. Rows are laid out (but
+  // invisible) from the start so the card never resizes mid-loop.
+  function stepsStageHtml(steps) {
+    const last = steps.length - 1;
+    return `
+      <div class="steps-stage">
+        ${steps.map((line, i) => `<div class="step-row${i === last ? " step-answer" : ""}">${escapeHtml(line)}</div>`).join("")}
+      </div>`;
+  }
+
+  const STEP_GAP_MS = 620;
+  function attachStepsAnimation(overlay) {
+    const rows = Array.prototype.slice.call(overlay.querySelectorAll(".step-row"));
+    if (!rows.length) return null;
+    const lastAt = 220 + (rows.length - 1) * STEP_GAP_MS;
+    function playCycle() {
+      rows.forEach(r => r.classList.remove("show"));
+      void rows[0].offsetWidth;
+      rows.forEach((r, i) => setTimeout(() => r.classList.add("show"), 220 + i * STEP_GAP_MS));
+    }
+    requestAnimationFrame(playCycle);
+    return setInterval(playCycle, cycleMs(lastAt, 2600));
   }
 
   function attachConstAnimation(overlay) {
