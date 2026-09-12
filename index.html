@@ -2740,6 +2740,16 @@
       </div>`;
   }
 
+  // Every looping mistake animation must HOLD its final answer on screen long
+  // enough to actually be read before the loop restarts. cycleMs() computes the
+  // loop interval from when the last reveal fires, so the hold is guaranteed
+  // rather than accidentally eaten by a hand-tuned interval.
+  const ANSWER_HOLD_MS = 1000;                 // full second of the answer sitting still
+  const REVEAL_SETTLE_MS = 400;                // matches exp-land-bounce's 0.4s landing
+  function cycleMs(finalRevealMs, minCycleMs) {
+    return Math.max(finalRevealMs + REVEAL_SETTLE_MS + ANSWER_HOLD_MS, minCycleMs || 0);
+  }
+
   function attachConstAnimation(overlay) {
     const numEl = overlay.querySelector("#cd-num");
     const zeroEl = overlay.querySelector("#cd-zero");
@@ -2770,7 +2780,7 @@
     }
 
     requestAnimationFrame(playConstCycle);
-    return setInterval(playConstCycle, 2000);
+    return setInterval(playConstCycle, cycleMs(900, 2000));
   }
 
   // Shared "x and the constant literally fall off, coefficient survives" diagram
@@ -2791,6 +2801,7 @@
     const coefEl = overlay.querySelector("#ld-coef");
     const xEl = overlay.querySelector("#ld-x");
     const constEl = overlay.querySelector("#ld-const"); // may be null if b === 0
+    const survivorMs = constEl ? 1150 : 950;
 
     function playLinearCycle() {
       coefEl.classList.remove("survivor"); void coefEl.offsetWidth;
@@ -2800,11 +2811,11 @@
       setTimeout(() => { xEl.classList.add("falling"); }, 300);
       if (constEl) setTimeout(() => { constEl.classList.add("falling"); }, 500);
 
-      setTimeout(() => { coefEl.classList.add("survivor"); }, constEl ? 1150 : 950);
+      setTimeout(() => { coefEl.classList.add("survivor"); }, survivorMs);
     }
 
     requestAnimationFrame(playLinearCycle);
-    return setInterval(playLinearCycle, 2200);
+    return setInterval(playLinearCycle, cycleMs(survivorMs, 2200));
   }
 
   // Implicit differentiation: the #1 real mistake is forgetting to attach the
@@ -2827,7 +2838,7 @@
       setTimeout(() => { tagEl.classList.add("reveal"); }, 550);
     }
     requestAnimationFrame(playCycle);
-    return setInterval(playCycle, 1900);
+    return setInterval(playCycle, cycleMs(550, 1900));
   }
 
   // Squeeze theorem: the upper and lower bounds visibly converge ("pinch")
@@ -2857,7 +2868,7 @@
       setTimeout(() => { answerEl.classList.add("reveal"); }, 1200);
     }
     requestAnimationFrame(playCycle);
-    return setInterval(playCycle, 2700);
+    return setInterval(playCycle, cycleMs(1200, 2700));
   }
 
   // Derivative by definition: Delta-x visibly shrinks toward 0 inside the
@@ -2883,7 +2894,7 @@
       setTimeout(() => { answerEl.classList.add("reveal"); }, 1150);
     }
     requestAnimationFrame(playCycle);
-    return setInterval(playCycle, 2400);
+    return setInterval(playCycle, cycleMs(1150, 2400));
   }
 
   // Optimization: the real mistake this reinforces is skipping the source
@@ -2915,7 +2926,7 @@
       setTimeout(() => { answerEl.classList.add("reveal"); }, 1300);
     }
     requestAnimationFrame(playCycle);
-    return setInterval(playCycle, 2700);
+    return setInterval(playCycle, cycleMs(1300, 2700));
   }
 
   function showMistakePopup(selEl, blank, q) {
@@ -3114,7 +3125,7 @@
       }
 
       requestAnimationFrame(playCycle);
-      loopTimer = setInterval(playCycle, FLIGHT_MS + 1300);
+      loopTimer = setInterval(playCycle, cycleMs(FLIGHT_MS, FLIGHT_MS + 1300));
     } else if (showsRuleDiagram) {
       const uSym = overlay.querySelector("#rp-u");
       const vSym = overlay.querySelector("#rp-v");
@@ -3148,7 +3159,7 @@
         if (isQuotient) setTimeout(() => { vsqEl.classList.add("reveal"); }, 1850);
       }
 
-      const cycleLength = isQuotient ? 2600 : 2200;
+      const cycleLength = cycleMs(isQuotient ? 1850 : 1450, isQuotient ? 2600 : 2200);
       requestAnimationFrame(playRuleCycle);
       loopTimer = setInterval(playRuleCycle, cycleLength);
     } else if (showsConstDiagram) {
