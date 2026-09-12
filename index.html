@@ -285,8 +285,8 @@
     position: absolute; top: -10px; right: -26px; color: #ff4d5e;
     font-weight: 900; font-size: 1.3rem; opacity: 0; pointer-events: none;
     font-family: -apple-system, sans-serif; text-shadow: 0 0 8px rgba(255,77,94,0.8);
-    animation: dmg-float 1s ease-out forwards; animation-delay: 0.22s;
   }
+  .dmg-popup.play { animation: dmg-float 1s ease-out forwards; }
   @keyframes dmg-float {
     0%   { opacity: 0; transform: translateY(0) scale(0.5); }
     18%  { opacity: 1; transform: translateY(-8px) scale(1.4); }
@@ -314,6 +314,26 @@
     transition: transform 0.4s cubic-bezier(.4,0,.2,1), opacity 0.4s ease-in;
   }
   .exp-flying-clone.arrived { opacity: 0; }
+
+  /* --- product / quotient rule diagram --- */
+  .rule-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 10px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 1.7rem; color: #fff; font-weight: 700;
+  }
+  .rule-source, .rule-dest { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: center; }
+  .rule-arrow { font-size: 1.3rem; color: #ff8a94; }
+  .rule-sym-wrap { position: relative; display: inline-block; }
+  .rule-sym { display: inline-block; transition: color 0.15s; }
+  .rule-sym.hit { animation: exp-hit-flash 0.4s ease-out; color: #ff4d5e; }
+  .rule-term, .rule-plus, .rule-minus {
+    visibility: hidden; opacity: 0;
+  }
+  .rule-term.reveal, .rule-plus.reveal, .rule-minus.reveal {
+    visibility: visible;
+    animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .rule-minus.reveal { text-shadow: 0 0 10px rgba(255,180,77,0.8); }
 
   /* --- generic reveal (structural / numeric fallback) --- */
   .reveal-stage { padding: 8px 4px 2px; }
@@ -651,7 +671,8 @@
       blanks: [
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
-      ]
+      ],
+      ruleShape: "product"
     };
   }
 
@@ -667,7 +688,8 @@
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex, fixedExp: true }
-      ]
+      ],
+      ruleShape: "quotient"
     };
   }
 
@@ -739,6 +761,7 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
+      ruleShape: "product",
       _check: (x) => (uPrimeCoef * Math.pow(x, uPrimeExp)) * v(x) + u(x) * (vPrimeCoef * Math.pow(x, vPrimeExp)),
       _f: f
     };
@@ -769,6 +792,7 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
+      ruleShape: "quotient",
       _check: (x) => ((uPrimeCoef * Math.pow(x, uPrimeExp)) * v(x) - u(x) * (vPrimeCoef * Math.pow(x, vPrimeExp))) / Math.pow(v(x), 2),
       _f: f
     };
@@ -844,6 +868,7 @@
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex },
         { key: "b4", options: b4.options, correctIndex: b4.correctIndex }
       ],
+      ruleShape: "quotient",
       _check: (x) => ((correctB1 * Math.pow(a * x + b, correctB2)) * v(x) - u(x) * correctB3) / Math.pow(v(x), 2),
       _f: f
     };
@@ -885,6 +910,7 @@
         { key: "b4", options: b4.options, correctIndex: b4.correctIndex },
         { key: "b5", options: b5.options, correctIndex: b5.correctIndex }
       ],
+      ruleShape: "product",
       _check: (x) => (b1cVal * Math.pow(a * x + b, b2cVal)) * v(x) + u(x) * (b3cVal * Math.pow(x, b4cVal)),
       _f: f
     };
@@ -944,6 +970,7 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
+      ruleShape: "quotient",
       _check: (x) => ((upCoef * x + upConst) * v(x) - u(x) * 1) / Math.pow(v(x), 2),
       _f: f
     };
@@ -1002,6 +1029,7 @@
         { key: "b4", options: b4.options, correctIndex: b4.correctIndex },
         { key: "b5", options: b5.options, correctIndex: b5.correctIndex }
       ],
+      ruleShape: "product",
       _check: (x) => (m * Math.pow(x + a, m - 1)) * v(x) + u(x) * (n * Math.pow(x + b, n - 1)),
       _f: f
     };
@@ -1345,6 +1373,8 @@
     // known original coefficient to show, so animate a bare "xⁿ".
     const isExpDiagram = !isPowerShapeMistake && isExponentBlank && !blank.fixedExp && isNumeric;
     const showsFlyDiagram = isPowerShapeMistake || isExpDiagram;
+    const isFixedExpMistake = isExponentBlank && blank.fixedExp;
+    const showsRuleDiagram = !isPowerShapeMistake && !isFixedExpMistake && q && (q.ruleShape === "product" || q.ruleShape === "quotient");
 
     let reduced = 0, original = 0;
     let innerHtml;
@@ -1387,11 +1417,45 @@
             <span>&nbsp;·&nbsp;x</span><sup class="exp-num exp-num--flyexp" id="mp-exp">${reduced}</sup>
           </div>
         </div>`;
-    } else if (isExponentBlank && blank.fixedExp) {
+    } else if (isFixedExpMistake) {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Always v²</div>
         <div class="reveal-stage"><div class="reveal-answer">${escapeHtml(correctText)}</div></div>`;
+    } else if (q && q.ruleShape === "product") {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Product Rule</div>
+        <div class="rule-stage">
+          <div class="rule-source">
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-u">u</span><span class="dmg-popup" id="rp-primeU">′</span></span>
+            <span>·</span>
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-v">v</span><span class="dmg-popup" id="rp-primeV">′</span></span>
+          </div>
+          <div class="rule-arrow">↓</div>
+          <div class="rule-dest">
+            <span class="rule-term" id="rp-term1">u′v</span>
+            <span class="rule-plus" id="rp-plus">+</span>
+            <span class="rule-term" id="rp-term2">uv′</span>
+          </div>
+        </div>`;
+    } else if (q && q.ruleShape === "quotient") {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Quotient Rule</div>
+        <div class="rule-stage">
+          <div class="rule-source">
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-u">u</span><span class="dmg-popup" id="rp-primeU">′</span></span>
+            <span>/</span>
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-v">v</span><span class="dmg-popup" id="rp-primeV">′</span></span>
+          </div>
+          <div class="rule-arrow">↓</div>
+          <div class="rule-dest">
+            (<span class="rule-term" id="rp-term1">u′v</span>
+            <span class="rule-minus" id="rp-minus">−</span>
+            <span class="rule-term" id="rp-term2">uv′</span>)&nbsp;/&nbsp;<span class="rule-term" id="rp-vsq">v²</span>
+          </div>
+        </div>`;
     } else {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
@@ -1414,6 +1478,7 @@
       const coefDest = overlay.querySelector("#mp-coef");
       const expDest = overlay.querySelector("#mp-exp");
       const prefixDest = overlay.querySelector("#mp-prefix");
+      const dmgPopup = overlay.querySelector(".dmg-popup");
 
       function spawnClone(destEl, stageRect, srcRect) {
         const destRect = destEl.getBoundingClientRect();
@@ -1434,6 +1499,7 @@
       function playCycle() {
         stage.querySelectorAll(".exp-flying-clone").forEach(c => c.remove());
         src.classList.remove("hit"); void src.offsetWidth; // restart CSS animation
+        if (dmgPopup) { dmgPopup.classList.remove("play"); void dmgPopup.offsetWidth; }
         coefDest.classList.remove("reveal");
         expDest.classList.remove("reveal");
         if (prefixDest) prefixDest.classList.remove("reveal");
@@ -1441,7 +1507,7 @@
         const stageRect = stage.getBoundingClientRect();
         const srcRect = src.getBoundingClientRect();
 
-        setTimeout(() => { src.classList.add("hit"); }, 200);
+        setTimeout(() => { src.classList.add("hit"); if (dmgPopup) dmgPopup.classList.add("play"); }, 200);
         setTimeout(() => {
           const c1 = spawnClone(coefDest, stageRect, srcRect);
           const c2 = spawnClone(expDest, stageRect, srcRect);
@@ -1458,6 +1524,42 @@
 
       requestAnimationFrame(playCycle);
       loopTimer = setInterval(playCycle, 1000);
+    } else if (showsRuleDiagram) {
+      const uSym = overlay.querySelector("#rp-u");
+      const vSym = overlay.querySelector("#rp-v");
+      const primeU = overlay.querySelector("#rp-primeU");
+      const primeV = overlay.querySelector("#rp-primeV");
+      const term1 = overlay.querySelector("#rp-term1");
+      const term2 = overlay.querySelector("#rp-term2");
+      const plusEl = overlay.querySelector("#rp-plus");
+      const minusEl = overlay.querySelector("#rp-minus");
+      const vsqEl = overlay.querySelector("#rp-vsq");
+      const isQuotient = q.ruleShape === "quotient";
+      const joinEl = isQuotient ? minusEl : plusEl;
+
+      function resetPlay(el) { if (el) { el.classList.remove("play"); void el.offsetWidth; } }
+      function resetReveal(el) { if (el) el.classList.remove("reveal"); }
+
+      // u gets differentiated first (term u′v appears), then v (term uv′/−uv′
+      // appears); same hit-flash + prime "damage popup" language as the power
+      // rule, just applied to each factor in turn instead of one exponent.
+      function playRuleCycle() {
+        uSym.classList.remove("hit"); vSym.classList.remove("hit");
+        void uSym.offsetWidth;
+        resetPlay(primeU); resetPlay(primeV);
+        resetReveal(term1); resetReveal(term2); resetReveal(joinEl); resetReveal(vsqEl);
+
+        setTimeout(() => { uSym.classList.add("hit"); if (primeU) primeU.classList.add("play"); }, 200);
+        setTimeout(() => { term1.classList.add("reveal"); }, 600);
+        setTimeout(() => { vSym.classList.add("hit"); if (primeV) primeV.classList.add("play"); }, 1000);
+        setTimeout(() => { joinEl.classList.add("reveal"); }, 1350);
+        setTimeout(() => { term2.classList.add("reveal"); }, 1450);
+        if (isQuotient) setTimeout(() => { vsqEl.classList.add("reveal"); }, 1850);
+      }
+
+      const cycleLength = isQuotient ? 2600 : 2200;
+      requestAnimationFrame(playRuleCycle);
+      loopTimer = setInterval(playRuleCycle, cycleLength);
     }
 
     let dismissed = false;
@@ -1471,7 +1573,7 @@
       setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
     }
     overlay.addEventListener("click", dismiss);
-    const autoTimer = setTimeout(dismiss, showsFlyDiagram ? 4600 : 3000);
+    const autoTimer = setTimeout(dismiss, showsFlyDiagram ? 4600 : (showsRuleDiagram ? 5200 : 3000));
   }
 
   function goHome() { state = { screen: "home" }; render(); }
