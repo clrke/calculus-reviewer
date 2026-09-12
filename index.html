@@ -382,6 +382,28 @@
     animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
   }
 
+  /* --- linear rule: x and the constant literally fall off, coefficient survives --- */
+  .linear-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 14px 4px 20px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 2.1rem; color: #fff; font-weight: 800; overflow: visible;
+  }
+  .linear-source { position: relative; display: flex; align-items: baseline; }
+  .linear-keep { display: inline-block; transition: color 0.2s, text-shadow 0.2s; }
+  .linear-keep.survivor {
+    color: #7dffb0; text-shadow: 0 0 12px rgba(125,255,176,0.7);
+    animation: exp-hit-flash 0.4s ease-out;
+  }
+  .linear-drop { display: inline-block; }
+  .linear-drop.falling {
+    animation: linear-drop-fall 0.6s cubic-bezier(.55,0,.85,.45) forwards;
+  }
+  @keyframes linear-drop-fall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(58px) rotate(50deg); opacity: 0; }
+  }
+  .linear-arrow { font-size: 1.3rem; color: #ff8a94; }
+
   /* --- generic reveal (structural / numeric fallback) --- */
   .reveal-stage { padding: 8px 4px 2px; }
   .reveal-answer {
@@ -682,7 +704,7 @@
         { label: "f′(x) = " + numToStr(-a), val: -a },
         { label: "f′(x) = " + formatLinear(a, b), val: "unchanged" }
       ]);
-      return { fLabel: "f(x) = " + formatLinear(a, b), options: opts.options, correctIndex: opts.correctIndex };
+      return { fLabel: "f(x) = " + formatLinear(a, b), options: opts.options, correctIndex: opts.correctIndex, isLinear: true, linearA: a, linearB: b };
     },
     // simple power: x^n
     function () {
@@ -739,7 +761,10 @@
         options: item.options,
         correctIndex: item.correctIndex,
         isConstant: !!item.isConstant,
-        constValue: item.constValue
+        constValue: item.constValue,
+        isLinear: !!item.isLinear,
+        linearA: item.linearA,
+        linearB: item.linearB
       });
     }
     return questions;
@@ -1471,6 +1496,11 @@
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Constant Rule</div>
         ${constStageHtml(q.constValue)}`;
+    } else if (q.isLinear) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Linear Rule</div>
+        ${linearStageHtml(q.linearA, q.linearB)}`;
     } else {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
@@ -1487,6 +1517,7 @@
     document.body.appendChild(overlay);
 
     if (q.isConstant) loopTimer = attachConstAnimation(overlay);
+    else if (q.isLinear) loopTimer = attachLinearAnimation(overlay);
 
     let dismissed = false;
     function dismiss() {
@@ -1668,6 +1699,40 @@
 
     requestAnimationFrame(playConstCycle);
     return setInterval(playConstCycle, 2000);
+  }
+
+  // Shared "x and the constant literally fall off, coefficient survives" diagram
+  // for the linear rule (f(x) = ax + b -> f'(x) = a).
+  function linearStageHtml(a, b) {
+    const coefText = fmtCoefPart(a) || "1";
+    const constText = b === 0 ? "" :
+      `<span class="linear-drop" id="ld-const">${b < 0 ? " " + QL.MINUS + " " + Math.abs(b) : " + " + b}</span>`;
+    return `
+      <div class="linear-stage">
+        <div class="linear-source">
+          <span class="linear-keep" id="ld-coef">${coefText}</span><span class="linear-drop" id="ld-x">x</span>${constText}
+        </div>
+      </div>`;
+  }
+
+  function attachLinearAnimation(overlay) {
+    const coefEl = overlay.querySelector("#ld-coef");
+    const xEl = overlay.querySelector("#ld-x");
+    const constEl = overlay.querySelector("#ld-const"); // may be null if b === 0
+
+    function playLinearCycle() {
+      coefEl.classList.remove("survivor"); void coefEl.offsetWidth;
+      xEl.classList.remove("falling"); void xEl.offsetWidth;
+      if (constEl) { constEl.classList.remove("falling"); void constEl.offsetWidth; }
+
+      setTimeout(() => { xEl.classList.add("falling"); }, 300);
+      if (constEl) setTimeout(() => { constEl.classList.add("falling"); }, 500);
+
+      setTimeout(() => { coefEl.classList.add("survivor"); }, constEl ? 1150 : 950);
+    }
+
+    requestAnimationFrame(playLinearCycle);
+    return setInterval(playLinearCycle, 2200);
   }
 
   function showMistakePopup(selEl, blank, q) {
