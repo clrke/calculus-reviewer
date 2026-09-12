@@ -415,6 +415,43 @@
   }
   .linear-arrow { font-size: 1.3rem; color: #ff8a94; }
 
+  /* --- implicit diff: the y' factor that gets forgotten flies in and attaches --- */
+  .yprime-stage {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 12px; padding: 10px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 1.7rem; color: #fff; font-weight: 700;
+  }
+  .yprime-arrow { font-size: 1.3rem; color: #ff8a94; }
+  .yprime-tag { visibility: hidden; opacity: 0; color: #7dffb0; text-shadow: 0 0 10px rgba(125,255,176,0.7); }
+  .yprime-tag.reveal { visibility: visible; animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+  /* --- squeeze theorem: both bounds converge (pinch) onto the same limit --- */
+  .squeeze-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 1.25rem; color: #fff; font-weight: 700;
+  }
+  .squeeze-bound { transition: transform 0.8s ease-in-out, opacity 0.8s ease-in-out; }
+  .squeeze-upper.pinch, .squeeze-lower.pinch { transform: scale(0.72); opacity: 0.3; }
+  .squeeze-mid { color: #ffd479; margin: 2px 0; }
+  .squeeze-arrow { font-size: 0.72rem; letter-spacing: 0.05em; color: #ff8a94; text-transform: uppercase; margin: 2px 0; }
+  .squeeze-answer { visibility: hidden; opacity: 0; color: #7dffb0; font-size: 1.6rem; text-shadow: 0 0 10px rgba(125,255,176,0.6); }
+  .squeeze-answer.reveal { visibility: visible; animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+  /* --- derivative by definition: Delta-x visibly shrinks to 0 in the limit --- */
+  .incr-stage {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 12px; padding: 10px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 1.5rem; color: #fff; font-weight: 700;
+  }
+  .incr-quotient { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; font-size: 1.15rem; }
+  .incr-quotient .incr-bar { width: 100%; border-top: 2px solid #fff; margin: 1px 0; }
+  .incr-dx { display: inline-block; transition: transform 0.7s ease-in, opacity 0.7s ease-in, color 0.4s; }
+  .incr-dx.shrink { transform: scale(0.15); opacity: 0.15; color: #ff4d5e; }
+  .incr-arrow { font-size: 1.2rem; color: #ff8a94; }
+  .incr-answer { visibility: hidden; opacity: 0; color: #7dffb0; text-shadow: 0 0 10px rgba(125,255,176,0.6); }
+  .incr-answer.reveal { visibility: visible; animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
+
   /* --- generic reveal (structural / numeric fallback) --- */
   .reveal-stage { padding: 8px 4px 2px; }
   .reveal-answer {
@@ -1666,7 +1703,8 @@
     const options = shuffle(["0", "1", "DNE (oscillates)", "∞"]);
     return {
       fLabel: "lim(x→0) " + xn + " · " + trigFn + "(1/x) = ?   [hint: " + MINUS + xn + " ≤ " + xn + trigFn + "(1/x) ≤ " + xn + "]",
-      options, correctIndex: options.indexOf("0")
+      options, correctIndex: options.indexOf("0"),
+      squeezeShape: { lower: MINUS + xn, middle: xn + "·" + trigFn + "(1/x)", upper: xn, answer: "0" }
     };
   }
 
@@ -1680,10 +1718,13 @@
     );
     const x0Part = x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0;
     const kPart = k === 1 ? "" : String(k);
+    const boundLower = numToStr(L) + " " + MINUS + " " + kPart + "(x " + x0Part + ")²";
+    const boundUpper = numToStr(L) + " + " + kPart + "(x " + x0Part + ")²";
     return {
-      fLabel: "If " + numToStr(L) + " " + MINUS + " " + kPart + "(x " + x0Part + ")² ≤ f(x) ≤ " + numToStr(L) + " + " + kPart +
-        "(x " + x0Part + ")²  for all x near " + numToStr(x0) + ", find lim(x→" + numToStr(x0) + ") f(x)   [Squeeze Theorem]",
-      options: opts.options, correctIndex: opts.correctIndex
+      fLabel: "If " + boundLower + " ≤ f(x) ≤ " + boundUpper +
+        "  for all x near " + numToStr(x0) + ", find lim(x→" + numToStr(x0) + ") f(x)   [Squeeze Theorem]",
+      options: opts.options, correctIndex: opts.correctIndex,
+      squeezeShape: { lower: boundLower, middle: "f(x)", upper: boundUpper, answer: numToStr(L) }
     };
   }
 
@@ -1917,7 +1958,8 @@
     const options = shuffle([correct, "y/x", MINUS + "x/y", "x/y"]);
     return {
       fLabel: "xy = " + C + ". Find dy/dx by implicit differentiation.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      yPrimeShape: { term: "d/dx[xy]", deriv: "y", tag: " + x·y′" }
     };
   }
 
@@ -1942,7 +1984,8 @@
     ]);
     return {
       fLabel: eqStr + ". Find dy/dx by implicit differentiation.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      yPrimeShape: { term: "d/dx[y" + sup(n) + "]", deriv: (n === 1 ? "" : n) + yPart, tag: " · y′" }
     };
   }
 
@@ -1973,11 +2016,17 @@
     if (pick([true, false])) {
       const correct = MINUS + "2y/x";
       const options = shuffle([correct, "2y/x", MINUS + "y/(2x)", "y/(2x)"]);
-      return { fLabel: "x²y = " + C + ". Find dy/dx by implicit differentiation.", options, correctIndex: options.indexOf(correct) };
+      return {
+        fLabel: "x²y = " + C + ". Find dy/dx by implicit differentiation.", options, correctIndex: options.indexOf(correct),
+        yPrimeShape: { term: "d/dx[x²y]", deriv: "2xy", tag: " + x²·y′" }
+      };
     } else {
       const correct = MINUS + "y/(2x)";
       const options = shuffle([correct, "y/(2x)", MINUS + "2y/x", "2y/x"]);
-      return { fLabel: "xy² = " + C + ". Find dy/dx by implicit differentiation.", options, correctIndex: options.indexOf(correct) };
+      return {
+        fLabel: "xy² = " + C + ". Find dy/dx by implicit differentiation.", options, correctIndex: options.indexOf(correct),
+        yPrimeShape: { term: "d/dx[xy²]", deriv: "y²", tag: " + 2xy·y′" }
+      };
     }
   }
 
@@ -2004,7 +2053,8 @@
     const eqPrefix = coefStr(a) === "" ? "" : coefStr(a);
     return {
       fLabel: eqPrefix + "x³ " + MINUS + " " + coefStr(b) + "xy + " + coefStr(c) + "y² = " + C + ". Find dy/dx by implicit differentiation.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      yPrimeShape: { term: "d/dx[" + coefStr(c) + "y²]", deriv: coefStr(2 * c) + "y", tag: " · y′" }
     };
   }
 
@@ -2075,7 +2125,8 @@
     );
     return {
       fLabel: "y = " + formatQuadratic(a, b, c) + ". Find y′ using the definition of the derivative (increment method).",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      incrementShape: true
     };
   }
 
@@ -2086,7 +2137,8 @@
     const opts = makeOptions({ label: correct, val: a }, numDistractors(a, [-1, 1, b, -b, 2, -2]));
     return {
       fLabel: "y = " + formatLinear(a, b) + ". Find y′ using the definition of the derivative (increment method).",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      incrementShape: true
     };
   }
 
@@ -2104,7 +2156,8 @@
     ]);
     return {
       fLabel: "f(x) = " + numToStr(c) + "/(" + formatLinear(1, d) + "). Find f′(x) using the definition of the derivative (increment method).",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      incrementShape: true
     };
   }
 
@@ -2119,7 +2172,8 @@
     ]);
     return {
       fLabel: "f(x) = √(x + " + k + "). Find f′(x) using the definition of the derivative (increment method).",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      incrementShape: true
     };
   }
 
@@ -2127,7 +2181,8 @@
     const options = shuffle(["cos x", MINUS + "cos x", "sin x", MINUS + "sin x"]);
     return {
       fLabel: "y = sin x. Find y′ using the definition of the derivative (increment method).",
-      options, correctIndex: options.indexOf("cos x")
+      options, correctIndex: options.indexOf("cos x"),
+      incrementShape: true
     };
   }
 
@@ -2135,7 +2190,8 @@
     const options = shuffle([MINUS + "sin x", "sin x", "cos x", MINUS + "cos x"]);
     return {
       fLabel: "y = cos x. Find y′ using the definition of the derivative (increment method).",
-      options, correctIndex: options.indexOf(MINUS + "sin x")
+      options, correctIndex: options.indexOf(MINUS + "sin x"),
+      incrementShape: true
     };
   }
 
@@ -2160,7 +2216,8 @@
     );
     return {
       fLabel: "f(x) = " + numToStr(c) + "/(" + formatLinear(1, d) + "). Using the definition of the derivative, find f′(" + numToStr(x0) + ").",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      incrementShape: true
     };
   }
 
@@ -2171,7 +2228,8 @@
     const opts = makeOptions({ label: numToStr(slope), val: slope }, numDistractors(slope, [-1, 1, a, -a, x0, -x0]));
     return {
       fLabel: "y = x³ " + (a < 0 ? MINUS + " " + formatMono(Math.abs(a), 1) : "+ " + formatMono(a, 1)) + ". Using the definition of the derivative, find the slope of the tangent line at x = " + numToStr(x0) + ".",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      incrementShape: true
     };
   }
 
@@ -2470,6 +2528,21 @@
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Linear Rule</div>
         ${linearStageHtml(q.linearA, q.linearB)}`;
+    } else if (q.yPrimeShape) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Don't forget y′</div>
+        ${yPrimeStageHtml(q.yPrimeShape.term, q.yPrimeShape.deriv, q.yPrimeShape.tag)}`;
+    } else if (q.squeezeShape) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Squeeze Theorem</div>
+        ${squeezeStageHtml(q.squeezeShape.lower, q.squeezeShape.middle, q.squeezeShape.upper, q.squeezeShape.answer)}`;
+    } else if (q.incrementShape) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Definition of the Derivative</div>
+        ${incrStageHtml(escapeHtml(q.options[q.correctIndex]))}`;
     } else {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
@@ -2487,6 +2560,9 @@
 
     if (q.isConstant) loopTimer = attachConstAnimation(overlay);
     else if (q.isLinear) loopTimer = attachLinearAnimation(overlay);
+    else if (q.yPrimeShape) loopTimer = attachYPrimeAnimation(overlay);
+    else if (q.squeezeShape) loopTimer = attachSqueezeAnimation(overlay);
+    else if (q.incrementShape) loopTimer = attachIncrAnimation(overlay);
 
     let dismissed = false;
     function dismiss() {
@@ -2703,6 +2779,85 @@
 
     requestAnimationFrame(playLinearCycle);
     return setInterval(playLinearCycle, 2200);
+  }
+
+  // Implicit differentiation: the #1 real mistake is forgetting to attach the
+  // chain-rule y' factor onto a y-term. Shows the term, then the correctly
+  // differentiated piece, then the missing "y'" tag flies in and lands —
+  // literally highlighting the exact thing students skip.
+  function yPrimeStageHtml(term, deriv, tag) {
+    return `
+      <div class="yprime-stage">
+        <div class="yprime-term">${term}</div>
+        <div class="yprime-arrow">→</div>
+        <div class="yprime-dest">${deriv}<span class="yprime-tag" id="yp-tag">${tag}</span></div>
+      </div>`;
+  }
+
+  function attachYPrimeAnimation(overlay) {
+    const tagEl = overlay.querySelector("#yp-tag");
+    function playCycle() {
+      tagEl.classList.remove("reveal"); void tagEl.offsetWidth;
+      setTimeout(() => { tagEl.classList.add("reveal"); }, 550);
+    }
+    requestAnimationFrame(playCycle);
+    return setInterval(playCycle, 1900);
+  }
+
+  // Squeeze theorem: the upper and lower bounds visibly converge ("pinch")
+  // onto the same value, then that shared value is revealed as the answer —
+  // showing WHY the middle function is forced to the same limit, not just
+  // asserting it.
+  function squeezeStageHtml(lower, middle, upper, answer) {
+    return `
+      <div class="squeeze-stage">
+        <div class="squeeze-bound squeeze-upper" id="sq-upper">${upper}</div>
+        <div class="squeeze-bound squeeze-mid">${middle}</div>
+        <div class="squeeze-bound squeeze-lower" id="sq-lower">${lower}</div>
+        <div class="squeeze-arrow">both bounds squeeze onto</div>
+        <div class="squeeze-answer" id="sq-answer">${answer}</div>
+      </div>`;
+  }
+
+  function attachSqueezeAnimation(overlay) {
+    const upperEl = overlay.querySelector("#sq-upper");
+    const lowerEl = overlay.querySelector("#sq-lower");
+    const answerEl = overlay.querySelector("#sq-answer");
+    function playCycle() {
+      upperEl.classList.remove("pinch"); lowerEl.classList.remove("pinch");
+      answerEl.classList.remove("reveal");
+      void upperEl.offsetWidth;
+      setTimeout(() => { upperEl.classList.add("pinch"); lowerEl.classList.add("pinch"); }, 350);
+      setTimeout(() => { answerEl.classList.add("reveal"); }, 1200);
+    }
+    requestAnimationFrame(playCycle);
+    return setInterval(playCycle, 2700);
+  }
+
+  // Derivative by definition: Delta-x visibly shrinks toward 0 inside the
+  // difference quotient before the final answer reveals — reinforcing that
+  // the whole method IS this limit, not just algebra that happens to work.
+  function incrStageHtml(answer) {
+    return `
+      <div class="incr-stage">
+        <div class="incr-quotient">Δy<div class="incr-bar"></div><span class="incr-dx" id="incr-dx">Δx</span></div>
+        <div class="incr-arrow">as Δx→0</div>
+        <div class="incr-arrow">→</div>
+        <div class="incr-answer" id="incr-answer">${answer}</div>
+      </div>`;
+  }
+
+  function attachIncrAnimation(overlay) {
+    const dxEl = overlay.querySelector("#incr-dx");
+    const answerEl = overlay.querySelector("#incr-answer");
+    function playCycle() {
+      dxEl.classList.remove("shrink"); answerEl.classList.remove("reveal");
+      void dxEl.offsetWidth;
+      setTimeout(() => { dxEl.classList.add("shrink"); }, 350);
+      setTimeout(() => { answerEl.classList.add("reveal"); }, 1150);
+    }
+    requestAnimationFrame(playCycle);
+    return setInterval(playCycle, 2400);
   }
 
   function showMistakePopup(selEl, blank, q) {
