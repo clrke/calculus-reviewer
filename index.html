@@ -293,9 +293,10 @@
     35%  { transform: translateY(-14px) scale(1); }
     100% { opacity: 0; transform: translateY(-42px) scale(1.05); }
   }
-  .exp-num--flycoef, .exp-num--flyexp {
+  .exp-num--flycoef, .exp-num--flyexp, .exp-dest-prefix {
     visibility: hidden; opacity: 0;
   }
+  .exp-dest-prefix.reveal { visibility: visible; opacity: 1; }
   .exp-num--flycoef.reveal, .exp-num--flyexp.reveal {
     visibility: visible;
     animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
@@ -609,6 +610,7 @@
       ],
       renderPrompt: "f(x) = " + formatMono(a, n),
       renderTemplate: "f′(x) = {b1} · x{b2:sup}",
+      powerRuleShape: { coefKey: "b1", expKey: "b2", a, n },
       _check: (x) => correctCoef * Math.pow(x, correctExp),
       _f: f
     };
@@ -632,6 +634,7 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
+      powerRuleShape: { coefKey: "b1", expKey: "b2", a, n },
       _check: (x) => correctCoef * Math.pow(x, correctExp) + correctConst,
       _f: f
     };
@@ -1237,7 +1240,7 @@
           state.selectedAnswers[blankIdx] = chosen;
           const blank = q.blanks[blankIdx];
           if (chosen !== undefined && chosen !== blank.correctIndex) {
-            showMistakePopup(sel, blank);
+            showMistakePopup(sel, blank, q);
           }
         });
       });
@@ -1310,7 +1313,13 @@
   let mistakePopupActive = false;
   const MISS_WORDS = ["MISS!", "OOF!", "NOPE!", "TILT!"];
 
-  function showMistakePopup(selEl, blank) {
+  function fmtCoefPart(a) {
+    if (a === 0) return "0";
+    const abs = Math.abs(a);
+    return (a < 0 ? QL.MINUS : "") + (abs === 1 ? "" : String(abs));
+  }
+
+  function showMistakePopup(selEl, blank, q) {
     if (mistakePopupActive) return; // don't stack popups if changes fire in quick succession
     mistakePopupActive = true;
 
@@ -1327,12 +1336,41 @@
     const correctText = blank.options[blank.correctIndex];
     const normalized = correctText.replace(/−/g, "-");
     const isNumeric = /^-?\d+$/.test(normalized);
-    const isExpDiagram = isExponentBlank && !blank.fixedExp && isNumeric;
+    // Whole-term power rule (f(x) = a·xⁿ, or with a trailing constant): show the
+    // FULL term ("9x²"), not a generic "x²" — fires for a wrong pick on EITHER the
+    // coefficient blank or the exponent blank, since both are about the same rule.
+    const powerShape = q && q.powerRuleShape;
+    const isPowerShapeMistake = !!(powerShape && (blank.key === powerShape.coefKey || blank.key === powerShape.expKey));
+    // Fallback generic diagram (chain rule etc.): only the exponent's own blank, no
+    // known original coefficient to show, so animate a bare "xⁿ".
+    const isExpDiagram = !isPowerShapeMistake && isExponentBlank && !blank.fixedExp && isNumeric;
+    const showsFlyDiagram = isPowerShapeMistake || isExpDiagram;
 
     let reduced = 0, original = 0;
     let innerHtml;
 
-    if (isExpDiagram) {
+    if (isPowerShapeMistake) {
+      const { a, n } = powerShape;
+      reduced = n - 1;
+      original = n;
+      const coefText = fmtCoefPart(a);
+      const srcCoefHtml = coefText ? `<span>${coefText}</span>` : "";
+      const destCoefPrefix = coefText ? `<span class="exp-dest-prefix" id="mp-prefix">${coefText}·</span>` : "";
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Power Rule</div>
+        <div class="exp-stage">
+          <div class="exp-source">
+            ${srcCoefHtml}<span>x</span><sup class="exp-num exp-num--source" id="mp-src">${original}</sup>
+            <span class="dmg-popup">−1</span>
+          </div>
+          <div class="exp-arrow">→</div>
+          <div class="exp-dest">
+            ${destCoefPrefix}<span class="exp-num exp-num--flycoef" id="mp-coef">${original}</span>
+            <span>&nbsp;·&nbsp;x</span><sup class="exp-num exp-num--flyexp" id="mp-exp">${reduced}</sup>
+          </div>
+        </div>`;
+    } else if (isExpDiagram) {
       reduced = parseInt(normalized, 10);
       original = reduced + 1;
       innerHtml = `
@@ -1370,11 +1408,12 @@
     document.body.appendChild(overlay);
 
     let loopTimer = null;
-    if (isExpDiagram) {
+    if (showsFlyDiagram) {
       const stage = overlay.querySelector(".exp-stage");
       const src = overlay.querySelector("#mp-src");
       const coefDest = overlay.querySelector("#mp-coef");
       const expDest = overlay.querySelector("#mp-exp");
+      const prefixDest = overlay.querySelector("#mp-prefix");
 
       function spawnClone(destEl, stageRect, srcRect) {
         const destRect = destEl.getBoundingClientRect();
@@ -1397,6 +1436,7 @@
         src.classList.remove("hit"); void src.offsetWidth; // restart CSS animation
         coefDest.classList.remove("reveal");
         expDest.classList.remove("reveal");
+        if (prefixDest) prefixDest.classList.remove("reveal");
 
         const stageRect = stage.getBoundingClientRect();
         const srcRect = src.getBoundingClientRect();
@@ -1410,6 +1450,7 @@
             c2.classList.add("arrived");
             coefDest.classList.add("reveal");
             expDest.classList.add("reveal");
+            if (prefixDest) prefixDest.classList.add("reveal");
             setTimeout(() => { c1.remove(); c2.remove(); }, 450);
           }, 400);
         }, 450);
@@ -1430,7 +1471,7 @@
       setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
     }
     overlay.addEventListener("click", dismiss);
-    const autoTimer = setTimeout(dismiss, isExpDiagram ? 4600 : 3000);
+    const autoTimer = setTimeout(dismiss, showsFlyDiagram ? 4600 : 3000);
   }
 
   function goHome() { state = { screen: "home" }; render(); }
