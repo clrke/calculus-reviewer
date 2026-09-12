@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Derivatives Quiz — Calculus Midterm Practice</title>
+<style>
+  :root {
+    --navy: #1a2332;
+    --navy-light: #24304a;
+    --blue: #2f5fa8;
+    --blue-light: #4d7fd6;
+    --green: #1e7d3a;
+    --green-bg: #e6f4ea;
+    --red: #b3261e;
+    --red-bg: #fdecea;
+    --gray: #666;
+    --border: #d8dce3;
+    --bg: #f4f6fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: #1c1f26;
+    min-height: 100vh;
+  }
+  #app { max-width: 900px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  header.site-header {
+    text-align: center;
+    padding: 28px 16px 20px;
+    color: white;
+    background: linear-gradient(135deg, var(--navy) 0%, #2a3a5c 100%);
+    border-radius: 0 0 18px 18px;
+    margin-bottom: 24px;
+  }
+  header.site-header h1 { margin: 0 0 6px; font-size: 1.7rem; }
+  header.site-header p { margin: 0; color: #b9c3d6; font-size: 0.95rem; }
+
+  .badge {
+    display: inline-block;
+    background: rgba(79,127,214,0.25);
+    color: #9fc2ff;
+    border: 1px solid rgba(159,194,255,0.4);
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  /* ---- Level select screen ---- */
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .level-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .level-card h2 { margin: 0; font-size: 1.15rem; color: var(--navy); }
+  .level-card .level-num {
+    display: inline-block;
+    background: var(--navy);
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-right: 8px;
+  }
+  .level-card p { margin: 0; color: var(--gray); font-size: 0.9rem; flex-grow: 1; }
+  .level-card .best-score { font-size: 0.82rem; color: var(--blue); font-weight: 600; }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 18px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: transform 0.08s ease, box-shadow 0.15s ease;
+  }
+  button:active { transform: scale(0.97); }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--blue-light); }
+  .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #eef1f6; }
+  .btn-ghost { background: transparent; color: var(--gray); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ---- Quiz view ---- */
+  .quiz-topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 10px;
+  }
+  .quiz-topbar .info { font-size: 0.88rem; color: var(--gray); }
+  .quiz-topbar .info b { color: var(--navy); }
+  .progress-bar {
+    height: 8px; background: #e3e7ee; border-radius: 999px; overflow: hidden;
+    margin-bottom: 22px;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--blue); border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  .question-card {
+    background: white; border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .question-card .qtag {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--blue); font-weight: 700; margin-bottom: 8px;
+  }
+  .question-prompt {
+    font-size: 1.15rem; font-family: "Cambria Math", Cambria, Georgia, serif;
+    color: var(--navy); margin-bottom: 22px; line-height: 1.6;
+  }
+  .template-line {
+    font-size: 1.12rem; font-family: "Cambria Math", Cambria, Georgia, serif;
+    line-height: 2.6; color: #222;
+  }
+  select.blank {
+    font-family: inherit; font-size: 1rem; font-weight: 700;
+    color: var(--blue); background: #eef3fc;
+    border: none; border-bottom: 2.5px dashed var(--blue-light);
+    border-radius: 6px 6px 0 0;
+    padding: 3px 8px; margin: 0 2px;
+    cursor: pointer; appearance: auto;
+  }
+  select.blank.correct { background: var(--green-bg); color: var(--green); border-bottom-color: var(--green); }
+  select.blank.incorrect { background: var(--red-bg); color: var(--red); border-bottom-color: var(--red); }
+  /* Exponent blanks: shrink + lift above the baseline (negative top margin) so the
+     dropdown itself reads as a true superscript slot, matching the static x², x³ text. */
+  select.blank.blank-sup {
+    font-size: 0.68em;
+    font-weight: 800;
+    padding: 1px 4px;
+    margin: 0 1px 0 -1px;
+    margin-top: -0.6em;
+    vertical-align: top;
+    border-bottom-width: 2px;
+  }
+  .correct-hint { font-size: 0.82rem; color: var(--green); font-weight: 600; margin: 0 6px; }
+  select.blank:disabled { cursor: default; opacity: 1; }
+
+  .actions-row { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; align-items: center; }
+  .feedback-msg { font-size: 0.92rem; font-weight: 600; margin-top: 14px; }
+  .feedback-msg.correct { color: var(--green); }
+  .feedback-msg.incorrect { color: var(--red); }
+
+  /* ---- Level 1 matching ---- */
+  .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .match-col h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray); margin-bottom: 10px; }
+  .match-card {
+    display: block; width: 100%; text-align: left;
+    background: #f7f9fc; border: 2px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px; font-size: 1rem;
+    font-family: "Cambria Math", Cambria, Georgia, serif; color: #222;
+    cursor: pointer; transition: all 0.12s ease;
+  }
+  .match-card:hover:not(.matched):not(:disabled) { border-color: var(--blue-light); }
+  .match-card.selected { border-color: var(--blue); background: #eaf1fd; }
+  .match-card.matched { background: var(--green-bg); border-color: var(--green); color: var(--green); cursor: default; }
+  .match-card.wrong-flash { background: var(--red-bg); border-color: var(--red); }
+  @media (max-width: 560px) { .match-grid { grid-template-columns: 1fr; } }
+
+  /* ---- Summary screen ---- */
+  .summary-card {
+    background: white; border: 1px solid var(--border); border-radius: 14px;
+    padding: 32px; text-align: center;
+  }
+  .summary-score { font-size: 3rem; font-weight: 800; color: var(--navy); margin: 8px 0; }
+  .summary-score span { font-size: 1.4rem; color: var(--gray); font-weight: 500; }
+  .summary-msg { font-size: 1.05rem; color: var(--gray); margin-bottom: 22px; }
+
+  footer.site-footer {
+    text-align: center; color: #9aa1ad; font-size: 0.78rem; margin-top: 40px;
+  }
+  .home-link { display: inline-block; margin-bottom: 16px; }
+  .sr-hint { font-size: 0.8rem; color: var(--gray); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// =====================================================================
+// PART 1 — Pure math / question-generation logic.
+// This block is embedded VERBATIM from quiz-logic.js, which is
+// numerically verified offline (7,500+ central-difference derivative
+// cross-checks against real calculus, zero failures) before shipping.
+// See test-logic.js in the project source for the verification suite.
+// =====================================================================
+// ===== Derivatives Quiz — pure math/generator logic (no DOM) =====
+// This file is shared: it is copy-pasted verbatim into the standalone HTML's
+// <script> tag, and is also require()'d directly by test-logic.js (Node)
+// for automated numeric-derivative cross-checking before it ships.
+
+(function (root) {
+  "use strict";
+
+  // ---------- small utilities ----------
+  function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[rnd(0, arr.length - 1)]; }
+  function sign() { return Math.random() < 0.5 ? 1 : -1; }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const SUPER = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴",
+                  "5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻" };
+  function sup(n) { return String(n).split("").map(ch => SUPER[ch] !== undefined ? SUPER[ch] : ch).join(""); }
+  const MINUS = "−"; // proper minus sign for display
+
+  function numToStr(n) { return n < 0 ? (MINUS + Math.abs(n)) : String(n); }
+
+  // "coef * base^exp" as a display string, base defaults to "x"
+  function formatMono(coef, exp, base) {
+    base = base || "x";
+    if (coef === 0) return "0";
+    const coefAbs = Math.abs(coef);
+    const negPrefix = coef < 0 ? MINUS : "";
+    let coefPart;
+    if (exp === 0) return negPrefix + coefAbs; // pure constant
+    coefPart = (coefAbs === 1) ? "" : String(coefAbs);
+    let baseWithExp;
+    if (exp === 1) baseWithExp = base;
+    else baseWithExp = base + sup(exp);
+    return negPrefix + coefPart + baseWithExp;
+  }
+
+  // "coefX*x + const" as a display string
+  function formatLinear(coefX, constTerm, base) {
+    base = base || "x";
+    const left = formatMono(coefX, 1, base);
+    if (constTerm === 0) return left === "0" ? "0" : left;
+    const op = constTerm < 0 ? " " + MINUS + " " : " + ";
+    return left + op + Math.abs(constTerm);
+  }
+
+  function wrapParen(a, b, opSign) {
+    // (x + a) style, opSign is +1 or -1 for a
+    return "(x " + (opSign < 0 ? MINUS : "+") + " " + Math.abs(a) + ")";
+  }
+
+  // ---------- generic option builder ----------
+  // correct: {label, val}   distractors: array of {label, val} candidates (priority order)
+  // val must be JSON-comparable (number or string) for dedup; falls back to numeric nudges.
+  function makeOptions(correct, distractorCandidates, count) {
+    count = count || 4;
+    const seen = new Set([JSON.stringify(correct.val)]);
+    const chosen = [correct];
+    for (const d of distractorCandidates) {
+      if (chosen.length >= count) break;
+      const key = JSON.stringify(d.val);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      chosen.push(d);
+    }
+    let nudge = 1;
+    while (chosen.length < count) {
+      if (typeof correct.val === "number") {
+        const candVal = correct.val + nudge * (chosen.length % 2 === 0 ? 1 : -1);
+        const key = JSON.stringify(candVal);
+        if (!seen.has(key)) {
+          seen.add(key);
+          chosen.push({ label: numToStr(candVal), val: candVal });
+        }
+        nudge++;
+      } else {
+        chosen.push({ label: correct.label + "​".repeat(chosen.length), val: "pad" + chosen.length });
+      }
+    }
+    const tagged = chosen.map((c, i) => Object.assign({}, c, { _origCorrect: i === 0 }));
+    const shuffled = shuffle(tagged);
+    const correctIndex = shuffled.findIndex(o => o._origCorrect);
+    return { options: shuffled.map(o => o.label), correctIndex };
+  }
+
+  // numeric distractor helper: correct value + a pool of small offsets
+  function numDistractors(correctVal, offsets) {
+    offsets = offsets || [-3, -2, -1, 1, 2, 3, -correctVal, correctVal * 2];
+    return offsets
+      .filter(o => o !== 0)
+      .map(o => correctVal + o)
+      .filter((v, i, self) => self.indexOf(v) === i)
+      .map(v => ({ label: numToStr(v), val: v }));
+  }
+
+  // ---------- numeric derivative (ground truth, for testing only) ----------
+  function numericDerivative(f, x, h) {
+    h = h || 1e-5;
+    return (f(x + h) - f(x - h)) / (2 * h);
+  }
+
+  // =========================================================================
+  // LEVEL 1 — Mix & Match (matching game)
+  // =========================================================================
+  const L1_GENERATORS = [
+    // constant
+    function () {
+      const c = rnd(2, 12) * pick([1, -1]);
+      return {
+        f: (x) => c,
+        fLabel: "f(x) = " + numToStr(c),
+        dLabel: "f′(x) = 0"
+      };
+    },
+    // linear
+    function () {
+      const a = rnd(2, 9), b = rnd(1, 9) * pick([1, -1]);
+      return {
+        f: (x) => a * x + b,
+        fLabel: "f(x) = " + formatLinear(a, b),
+        dLabel: "f′(x) = " + numToStr(a)
+      };
+    },
+    // pure power
+    function () {
+      const n = rnd(2, 5);
+      return {
+        f: (x) => Math.pow(x, n),
+        fLabel: "f(x) = " + formatMono(1, n),
+        dLabel: "f′(x) = " + formatMono(n, n - 1)
+      };
+    },
+    // coefficient power
+    function () {
+      const a = rnd(2, 9), n = rnd(2, 5);
+      return {
+        f: (x) => a * Math.pow(x, n),
+        fLabel: "f(x) = " + formatMono(a, n),
+        dLabel: "f′(x) = " + formatMono(a * n, n - 1)
+      };
+    },
+    // negative coefficient power
+    function () {
+      const a = rnd(2, 9), n = rnd(2, 5);
+      return {
+        f: (x) => -a * Math.pow(x, n),
+        fLabel: "f(x) = " + formatMono(-a, n),
+        dLabel: "f′(x) = " + formatMono(-a * n, n - 1)
+      };
+    },
+    // two-term polynomial: a x^n + b x
+    function () {
+      const a = rnd(2, 9), n = rnd(3, 5), b = rnd(1, 9) * pick([1, -1]);
+      const bJoin = b < 0 ? " " + MINUS + " " : " + ";
+      return {
+        f: (x) => a * Math.pow(x, n) + b * x,
+        fLabel: "f(x) = " + formatMono(a, n) + bJoin + formatMono(Math.abs(b), 1),
+        dLabel: "f′(x) = " + formatMono(a * n, n - 1) + bJoin + Math.abs(b)
+      };
+    },
+    // a x^2 + c  (constant term drops out)
+    function () {
+      const a = rnd(2, 9), c = rnd(1, 9) * pick([1, -1]);
+      return {
+        f: (x) => a * Math.pow(x, 2) + c,
+        fLabel: "f(x) = " + formatMono(a, 2) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c),
+        dLabel: "f′(x) = " + formatMono(2 * a, 1)
+      };
+    },
+    // cubic minus quadratic: a x^3 - b x^2
+    function () {
+      const a = rnd(2, 6), b = rnd(2, 9);
+      return {
+        f: (x) => a * Math.pow(x, 3) - b * Math.pow(x, 2),
+        fLabel: "f(x) = " + formatMono(a, 3) + " " + MINUS + " " + formatMono(b, 2),
+        dLabel: "f′(x) = " + formatMono(3 * a, 2) + " " + MINUS + " " + formatMono(2 * b, 1)
+      };
+    }
+  ];
+
+  function generateLevel1(numPairs) {
+    numPairs = numPairs || 6;
+    const pool = shuffle(L1_GENERATORS.slice());
+    const gens = pool.slice(0, numPairs);
+    const chosen = [];
+    const seenD = new Set(), seenF = new Set();
+    for (const gen of gens) {
+      let item, tries = 0;
+      do {
+        item = gen();
+        tries++;
+      } while (tries < 25 && (seenD.has(item.dLabel) || seenF.has(item.fLabel)));
+      seenD.add(item.dLabel);
+      seenF.add(item.fLabel);
+      chosen.push(item);
+    }
+    return chosen;
+  }
+
+  // =========================================================================
+  // LEVEL 2 — single-concept fill-in-the-blank (numeric params)
+  // =========================================================================
+
+  function q_L2_powerRule() {
+    const a = rnd(2, 9), n = rnd(2, 5);
+    const f = (x) => a * Math.pow(x, n);
+    const correctCoef = a * n, correctExp = n - 1;
+    const b1 = makeOptions(
+      { label: numToStr(correctCoef), val: correctCoef },
+      numDistractors(correctCoef, [-n, n, a - n, a + n, -a, 1])
+    );
+    const b2 = makeOptions(
+      { label: numToStr(correctExp), val: correctExp },
+      numDistractors(correctExp, [1, 2, -1, n + 1 - correctExp])
+    );
+    return {
+      level: 2, type: "blanks",
+      prompt: "f(x) = " + formatMono(a, n),
+      template: ["f′(x) = ", { key: "b1" }, "x", { key: "exp", sup: true, ref: "b2" }],
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
+      ],
+      renderPrompt: "f(x) = " + formatMono(a, n),
+      renderTemplate: "f′(x) = {b1} · x{b2:sup}",
+      _check: (x) => correctCoef * Math.pow(x, correctExp),
+      _f: f
+    };
+  }
+
+  function q_L2_powerPlusConst() {
+    const a = rnd(2, 9), n = rnd(3, 5), c = rnd(1, 9) * pick([1, -1]);
+    const f = (x) => a * Math.pow(x, n) + c;
+    const correctCoef = a * n, correctExp = n - 1, correctConst = 0;
+    const b1 = makeOptions({ label: numToStr(correctCoef), val: correctCoef }, numDistractors(correctCoef, [-n, n, a, -a]));
+    const b2 = makeOptions({ label: numToStr(correctExp), val: correctExp }, numDistractors(correctExp, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(correctConst), val: correctConst }, [
+      { label: numToStr(c), val: c }, { label: numToStr(a), val: a }, { label: "1", val: 1 }, { label: numToStr(-c), val: -c }
+    ]);
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: "f(x) = " + formatMono(a, n) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c),
+      renderTemplate: "f′(x) = {b1} · x{b2:sup} + {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => correctCoef * Math.pow(x, correctExp) + correctConst,
+      _f: f
+    };
+  }
+
+  function q_L2_productPattern() {
+    const opts = shuffle(["u", "u′", "v", "v′"]);
+    const b1 = makeOptions({ label: "u′", val: "u'" }, [{ label: "u", val: "u" }, { label: "v", val: "v" }, { label: "v′", val: "v'" }]);
+    const b2 = makeOptions({ label: "v′", val: "v'" }, [{ label: "u", val: "u" }, { label: "v", val: "v" }, { label: "u′", val: "u'" }]);
+    return {
+      level: 2, type: "blanks", conceptual: true,
+      renderPrompt: "Product Rule: (u · v)′ = ?",
+      renderTemplate: "(u · v)′ = {b1} · v + u · {b2}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
+      ]
+    };
+  }
+
+  function q_L2_quotientPattern() {
+    const b1 = makeOptions({ label: "u′", val: "u'" }, [{ label: "u", val: "u" }, { label: "v", val: "v" }, { label: "v′", val: "v'" }]);
+    const b2 = makeOptions({ label: "v′", val: "v'" }, [{ label: "u", val: "u" }, { label: "v", val: "v" }, { label: "u′", val: "u'" }]);
+    const b3 = makeOptions({ label: "2", val: 2 }, [{ label: "1", val: 1 }, { label: "3", val: 3 }, { label: "u", val: "u" }]);
+    return {
+      level: 2, type: "blanks", conceptual: true,
+      renderPrompt: "Quotient Rule: (u / v)′ = ?",
+      renderTemplate: "(u / v)′ = ({b1} · v " + MINUS + " u · {b2}) / v{b3:sup}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ]
+    };
+  }
+
+  function q_L2_chainRule() {
+    const a = rnd(2, 9), b = rnd(1, 9) * pick([1, -1]), n = rnd(2, 5);
+    const f = (x) => Math.pow(a * x + b, n);
+    const correctB1 = n, correctB2 = n - 1, correctB3 = a;
+    const b1 = makeOptions({ label: numToStr(correctB1), val: correctB1 }, numDistractors(correctB1, [-1, 1, a, a * n]));
+    const b2 = makeOptions({ label: numToStr(correctB2), val: correctB2 }, numDistractors(correctB2, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(correctB3), val: correctB3 }, numDistractors(correctB3, [b, -a, n, 1]));
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: "f(x) = (" + formatLinear(a, b) + ")" + sup(n),
+      renderTemplate: "f′(x) = {b1} · (" + formatLinear(a, b) + "){b2:sup} · {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => correctB1 * Math.pow(a * x + b, correctB2) * correctB3,
+      _f: f
+    };
+  }
+
+  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule];
+
+  function generateLevel2(numQuestions) {
+    numQuestions = numQuestions || 5;
+    const pool = shuffle(L2_TEMPLATES.slice());
+    const chosen = [];
+    for (let i = 0; i < numQuestions; i++) chosen.push(pool[i % pool.length]());
+    return chosen;
+  }
+
+  // =========================================================================
+  // LEVEL 3 — up to 2 layers combined
+  // =========================================================================
+
+  function q_L3_productOfPowers() {
+    const p = rnd(2, 4), q = rnd(2, 4), c = rnd(1, 9) * pick([1, -1]);
+    const u = (x) => Math.pow(x, p), v = (x) => Math.pow(x, q) + c;
+    const f = (x) => u(x) * v(x);
+    const uPrimeCoef = p, uPrimeExp = p - 1;
+    const vPrimeCoef = q, vPrimeExp = q - 1;
+    const b1 = makeOptions(
+      { label: formatMono(uPrimeCoef, uPrimeExp), val: uPrimeCoef + "_" + uPrimeExp },
+      [
+        { label: formatMono(1, uPrimeExp), val: "1_" + uPrimeExp },
+        { label: formatMono(uPrimeCoef, p), val: uPrimeCoef + "_" + p },
+        { label: formatMono(uPrimeExp, uPrimeExp), val: uPrimeExp + "_" + uPrimeExp }
+      ]
+    );
+    const b2 = makeOptions(
+      { label: formatMono(vPrimeCoef, vPrimeExp), val: vPrimeCoef + "_" + vPrimeExp },
+      [
+        { label: formatMono(1, vPrimeExp), val: "1_" + vPrimeExp },
+        { label: formatMono(vPrimeCoef, q), val: vPrimeCoef + "_" + q },
+        { label: "0", val: "zero" }
+      ]
+    );
+    const structOpts = shuffle(["u′v + uv′", "u′v " + MINUS + " uv′", "u′v′", "uv′ " + MINUS + " u′v"]);
+    const b3 = { options: structOpts, correctIndex: structOpts.indexOf("u′v + uv′") };
+    return {
+      level: 3, type: "blanks",
+      renderPrompt: "f(x) = x" + sup(p) + " · (x" + sup(q) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c) + ")   [u = x" + sup(p) + ", v = x" + sup(q) + (c < 0 ? MINUS + Math.abs(c) : "+" + c) + "]",
+      renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => (uPrimeCoef * Math.pow(x, uPrimeExp)) * v(x) + u(x) * (vPrimeCoef * Math.pow(x, vPrimeExp)),
+      _f: f
+    };
+  }
+
+  function q_L3_quotientOfPowers() {
+    const p = rnd(2, 4), q = rnd(2, 4), c = rnd(1, 9) * pick([1, -1]);
+    const u = (x) => Math.pow(x, p), v = (x) => Math.pow(x, q) + c;
+    const f = (x) => u(x) / v(x);
+    const uPrimeCoef = p, uPrimeExp = p - 1;
+    const vPrimeCoef = q, vPrimeExp = q - 1;
+    const b1 = makeOptions(
+      { label: formatMono(uPrimeCoef, uPrimeExp), val: uPrimeCoef + "_" + uPrimeExp },
+      [{ label: formatMono(1, uPrimeExp), val: "1_" + uPrimeExp }, { label: formatMono(uPrimeCoef, p), val: uPrimeCoef + "_" + p }, { label: formatMono(uPrimeExp, uPrimeExp), val: uPrimeExp + "_" + uPrimeExp }]
+    );
+    const b2 = makeOptions(
+      { label: formatMono(vPrimeCoef, vPrimeExp), val: vPrimeCoef + "_" + vPrimeExp },
+      [{ label: formatMono(1, vPrimeExp), val: "1_" + vPrimeExp }, { label: formatMono(vPrimeCoef, q), val: vPrimeCoef + "_" + q }, { label: "0", val: "zero" }]
+    );
+    const structOpts = shuffle(["(u′v " + MINUS + " uv′)/v²", "(u′v + uv′)/v²", "(uv′ " + MINUS + " u′v)/v²", "(u′v " + MINUS + " uv′)/v"]);
+    const b3 = { options: structOpts, correctIndex: structOpts.indexOf("(u′v " + MINUS + " uv′)/v²") };
+    return {
+      level: 3, type: "blanks",
+      renderPrompt: "f(x) = x" + sup(p) + " / (x" + sup(q) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c) + ")   [u = x" + sup(p) + ", v = x" + sup(q) + (c < 0 ? MINUS + Math.abs(c) : "+" + c) + "]",
+      renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => ((uPrimeCoef * Math.pow(x, uPrimeExp)) * v(x) - u(x) * (vPrimeCoef * Math.pow(x, vPrimeExp))) / Math.pow(v(x), 2),
+      _f: f
+    };
+  }
+
+  function q_L3_chainWrapSum() {
+    const a = rnd(2, 9) * pick([1, -1]), n = rnd(2, 4);
+    const g = (x) => Math.pow(x, 2) + a * x;
+    const f = (x) => Math.pow(g(x), n);
+    const gPrimeCoef = 2, gPrimeConst = a; // g'(x) = 2x + a
+    const b1 = makeOptions(
+      { label: formatLinear(gPrimeCoef, gPrimeConst), val: gPrimeCoef + "_" + gPrimeConst },
+      [
+        { label: formatLinear(1, gPrimeConst), val: "1_" + gPrimeConst },
+        { label: formatLinear(gPrimeCoef, -gPrimeConst), val: gPrimeCoef + "_" + (-gPrimeConst) },
+        { label: formatMono(gPrimeCoef, 1), val: gPrimeCoef + "_0" }
+      ]
+    );
+    const b2 = makeOptions({ label: numToStr(n), val: n }, numDistractors(n, [-1, 1, 2]));
+    const b3 = makeOptions({ label: numToStr(n - 1), val: n - 1 }, numDistractors(n - 1, [1, 2, -1]));
+    return {
+      level: 3, type: "blanks",
+      renderPrompt: "f(x) = (x² " + (a < 0 ? MINUS + " " + Math.abs(a) + "x" : "+ " + a + "x") + ")" + sup(n) + "   [let g(x) = x² " + (a < 0 ? MINUS + " " + Math.abs(a) + "x" : "+ " + a + "x") + "]",
+      renderTemplate: "g′(x) = {b1}     f′(x) = {b2} · g(x){b3:sup} · g′(x)",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => n * Math.pow(g(x), n - 1) * (gPrimeCoef * x + gPrimeConst),
+      _f: f
+    };
+  }
+
+  function q_L3_chainTimesConst() {
+    const k = rnd(2, 6), a = rnd(2, 9), b = rnd(1, 9) * pick([1, -1]), n = rnd(2, 5);
+    const f = (x) => k * Math.pow(a * x + b, n);
+    const correctB1 = k * n, correctB2 = n - 1, correctB3 = a;
+    const b1 = makeOptions({ label: numToStr(correctB1), val: correctB1 }, numDistractors(correctB1, [-k, k, n, -n, a]));
+    const b2 = makeOptions({ label: numToStr(correctB2), val: correctB2 }, numDistractors(correctB2, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(correctB3), val: correctB3 }, numDistractors(correctB3, [b, k, n]));
+    return {
+      level: 3, type: "blanks",
+      renderPrompt: "f(x) = " + k + "(" + formatLinear(a, b) + ")" + sup(n),
+      renderTemplate: "f′(x) = {b1} · (" + formatLinear(a, b) + "){b2:sup} · {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => correctB1 * Math.pow(a * x + b, correctB2) * correctB3,
+      _f: f
+    };
+  }
+
+  function q_L3_quotientChainNumerator() {
+    const a = rnd(2, 7), b = rnd(1, 9) * pick([1, -1]), n = rnd(2, 4);
+    const u = (x) => Math.pow(a * x + b, n), v = (x) => x;
+    const f = (x) => u(x) / v(x);
+    const correctB1 = n * a, correctB2 = n - 1, correctB3 = 1;
+    const b1 = makeOptions({ label: numToStr(correctB1), val: correctB1 }, numDistractors(correctB1, [n, a, -a, -n]));
+    const b2 = makeOptions({ label: numToStr(correctB2), val: correctB2 }, numDistractors(correctB2, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(correctB3), val: correctB3 }, [{ label: "0", val: 0 }, { label: "x", val: "x" }, { label: numToStr(a), val: a }]);
+    const structOpts = shuffle(["(u′v " + MINUS + " uv′)/v²", "(u′v + uv′)/v²", "(uv′ " + MINUS + " u′v)/v²", "(u′v " + MINUS + " uv′)/v"]);
+    const b4 = { options: structOpts, correctIndex: structOpts.indexOf("(u′v " + MINUS + " uv′)/v²") };
+    return {
+      level: 3, type: "blanks",
+      renderPrompt: "f(x) = (" + formatLinear(a, b) + ")" + sup(n) + " / x   [u = (" + formatLinear(a, b) + ")" + sup(n) + ", v = x]",
+      renderTemplate: "u′ = {b1} · (" + formatLinear(a, b) + "){b2:sup}     v′ = {b3}     f′(x) = {b4}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex },
+        { key: "b4", options: b4.options, correctIndex: b4.correctIndex }
+      ],
+      _check: (x) => ((correctB1 * Math.pow(a * x + b, correctB2)) * v(x) - u(x) * correctB3) / Math.pow(v(x), 2),
+      _f: f
+    };
+  }
+
+  const L3_TEMPLATES = [q_L3_productOfPowers, q_L3_quotientOfPowers, q_L3_chainWrapSum, q_L3_chainTimesConst, q_L3_quotientChainNumerator];
+
+  function generateLevel3(numQuestions) {
+    numQuestions = numQuestions || 5;
+    const pool = shuffle(L3_TEMPLATES.slice());
+    const chosen = [];
+    for (let i = 0; i < numQuestions; i++) chosen.push(pool[i % pool.length]());
+    return chosen;
+  }
+
+  // =========================================================================
+  // LEVEL 4 — up to 3 layers combined
+  // =========================================================================
+
+  function q_L4_chainTimesPower() {
+    const a = rnd(2, 7), b = rnd(1, 9) * pick([1, -1]), m = rnd(2, 4), p = rnd(2, 4);
+    const u = (x) => Math.pow(a * x + b, m), v = (x) => Math.pow(x, p);
+    const f = (x) => u(x) * v(x);
+    const b1cVal = m * a, b2cVal = m - 1, b3cVal = p, b4cVal = p - 1;
+    const b1 = makeOptions({ label: numToStr(b1cVal), val: b1cVal }, numDistractors(b1cVal, [m, a, -a]));
+    const b2 = makeOptions({ label: numToStr(b2cVal), val: b2cVal }, numDistractors(b2cVal, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(b3cVal), val: b3cVal }, numDistractors(b3cVal, [1, 2, -1]));
+    const b4 = makeOptions({ label: numToStr(b4cVal), val: b4cVal }, numDistractors(b4cVal, [1, 2, -1]));
+    const structOpts = shuffle(["u′v + uv′", "u′v " + MINUS + " uv′", "u′v′", "uv′ " + MINUS + " u′v"]);
+    const b5 = { options: structOpts, correctIndex: structOpts.indexOf("u′v + uv′") };
+    return {
+      level: 4, type: "blanks",
+      renderPrompt: "f(x) = (" + formatLinear(a, b) + ")" + sup(m) + " · x" + sup(p) + "   [u = (" + formatLinear(a, b) + ")" + sup(m) + ", v = x" + sup(p) + "]",
+      renderTemplate: "u′ = {b1} · (" + formatLinear(a, b) + "){b2:sup}     v′ = {b3} · x{b4:sup}     f′(x) = {b5}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex },
+        { key: "b4", options: b4.options, correctIndex: b4.correctIndex },
+        { key: "b5", options: b5.options, correctIndex: b5.correctIndex }
+      ],
+      _check: (x) => (b1cVal * Math.pow(a * x + b, b2cVal)) * v(x) + u(x) * (b3cVal * Math.pow(x, b4cVal)),
+      _f: f
+    };
+  }
+
+  function q_L4_chainWrapProduct() {
+    const a = rnd(1, 9) * pick([1, -1]), b = rnd(1, 9) * pick([1, -1]), n = rnd(2, 4);
+    const g = (x) => (x + a) * (x + b);
+    const f = (x) => Math.pow(g(x), n);
+    const gpCoef = 2, gpConst = a + b; // g'(x) = 2x + (a+b)
+    const b1 = makeOptions(
+      { label: formatLinear(gpCoef, gpConst), val: gpCoef + "_" + gpConst },
+      [
+        { label: formatLinear(1, gpConst), val: "1_" + gpConst },
+        { label: formatLinear(gpCoef, a - b), val: gpCoef + "_" + (a - b) },
+        { label: formatMono(gpCoef, 1), val: gpCoef + "_0" }
+      ]
+    );
+    const b2 = makeOptions({ label: numToStr(n), val: n }, numDistractors(n, [-1, 1, 2]));
+    const b3 = makeOptions({ label: numToStr(n - 1), val: n - 1 }, numDistractors(n - 1, [1, 2, -1]));
+    return {
+      level: 4, type: "blanks",
+      renderPrompt: "f(x) = [(x " + (a < 0 ? MINUS + " " + Math.abs(a) : "+ " + a) + ")(x " + (b < 0 ? MINUS + " " + Math.abs(b) : "+ " + b) + ")]" + sup(n) + "   [let g(x) = (x " + (a < 0 ? MINUS + " " + Math.abs(a) : "+ " + a) + ")(x " + (b < 0 ? MINUS + " " + Math.abs(b) : "+ " + b) + ")]",
+      renderTemplate: "g′(x) = {b1}  (via product rule: (x+a)′=1, (x+b)′=1)     f′(x) = {b2} · g(x){b3:sup} · g′(x)",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => n * Math.pow(g(x), n - 1) * (gpCoef * x + gpConst),
+      _f: f
+    };
+  }
+
+  function q_L4_quotientProductNumerator() {
+    const a = rnd(2, 7), b = rnd(1, 9) * pick([1, -1]), c = rnd(1, 9) * pick([1, -1]);
+    const u = (x) => x * (a * x + b), v = (x) => x + c;
+    const f = (x) => u(x) / v(x);
+    const upCoef = 2 * a, upConst = b; // u'(x) = 2a x + b
+    const b1 = makeOptions(
+      { label: formatLinear(upCoef, upConst), val: upCoef + "_" + upConst },
+      [
+        { label: formatLinear(a, upConst), val: a + "_" + upConst },
+        { label: formatLinear(upCoef, -upConst), val: upCoef + "_" + (-upConst) },
+        { label: formatMono(upCoef, 1), val: upCoef + "_0" }
+      ]
+    );
+    const b2 = makeOptions({ label: "1", val: 1 }, [{ label: "0", val: 0 }, { label: numToStr(c), val: c }, { label: "x", val: "x" }]);
+    const structOpts = shuffle(["(u′v " + MINUS + " uv′)/v²", "(u′v + uv′)/v²", "(uv′ " + MINUS + " u′v)/v²", "(u′v " + MINUS + " uv′)/v"]);
+    const b3 = { options: structOpts, correctIndex: structOpts.indexOf("(u′v " + MINUS + " uv′)/v²") };
+    return {
+      level: 4, type: "blanks",
+      renderPrompt: "f(x) = [x(" + formatLinear(a, b) + ")] / (x " + (c < 0 ? MINUS + " " + Math.abs(c) : "+ " + c) + ")   [u = x(" + formatLinear(a, b) + "), v = x " + (c < 0 ? MINUS + " " + Math.abs(c) : "+ " + c) + "]",
+      renderTemplate: "u′ = {b1}  (via product rule)     v′ = {b2}     f′(x) = {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      _check: (x) => ((upCoef * x + upConst) * v(x) - u(x) * 1) / Math.pow(v(x), 2),
+      _f: f
+    };
+  }
+
+  function q_L4_tripleChain() {
+    const a = rnd(1, 9) * pick([1, -1]), m = rnd(2, 3), b = rnd(1, 9) * pick([1, -1]), n = rnd(2, 3);
+    const p = (x) => Math.pow(x, 2) + a;
+    const q = (x) => Math.pow(p(x), m) + b;
+    const f = (x) => Math.pow(q(x), n);
+    const b1 = makeOptions({ label: formatMono(2, 1), val: "2_1" }, [{ label: formatMono(1, 1), val: "1_1" }, { label: formatMono(2, 2), val: "2_2" }, { label: formatMono(2, 0), val: "2_0" }]);
+    const b2 = makeOptions({ label: numToStr(m - 1), val: m - 1 }, numDistractors(m - 1, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(n), val: n }, numDistractors(n, [-1, 1, 2]));
+    const b4 = makeOptions({ label: numToStr(n - 1), val: n - 1 }, numDistractors(n - 1, [1, 2, -1]));
+    return {
+      level: 4, type: "blanks",
+      renderPrompt: "f(x) = [(x² " + (a < 0 ? MINUS + " " + Math.abs(a) : "+ " + a) + ")" + sup(m) + " " + (b < 0 ? MINUS + " " + Math.abs(b) : "+ " + b) + "]" + sup(n) +
+        "   [let p(x)=x²" + (a < 0 ? MINUS + Math.abs(a) : "+" + a) + ",  q(x)=p(x)" + sup(m) + (b < 0 ? MINUS + Math.abs(b) : "+" + b) + ",  f(x)=q(x)" + sup(n) + "]",
+      renderTemplate: "p′(x) = {b1}     q′(x) = " + m + " · p(x){b2:sup} · p′(x)     f′(x) = {b3} · q(x){b4:sup} · q′(x)",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex },
+        { key: "b4", options: b4.options, correctIndex: b4.correctIndex }
+      ],
+      _check: (x) => {
+        const pPrime = 2 * x;
+        const qPrime = m * Math.pow(p(x), m - 1) * pPrime;
+        return n * Math.pow(q(x), n - 1) * qPrime;
+      },
+      _f: f
+    };
+  }
+
+  function q_L4_productOfTwoChains() {
+    const a = rnd(1, 9) * pick([1, -1]), m = rnd(2, 4);
+    const b = rnd(1, 9) * pick([1, -1]), n = rnd(2, 4);
+    const u = (x) => Math.pow(x + a, m), v = (x) => Math.pow(x + b, n);
+    const f = (x) => u(x) * v(x);
+    const b1 = makeOptions({ label: numToStr(m), val: m }, numDistractors(m, [-1, 1, 2]));
+    const b2 = makeOptions({ label: numToStr(m - 1), val: m - 1 }, numDistractors(m - 1, [1, 2, -1]));
+    const b3 = makeOptions({ label: numToStr(n), val: n }, numDistractors(n, [-1, 1, 2]));
+    const b4 = makeOptions({ label: numToStr(n - 1), val: n - 1 }, numDistractors(n - 1, [1, 2, -1]));
+    const structOpts = shuffle(["u′v + uv′", "u′v " + MINUS + " uv′", "u′v′", "uv′ " + MINUS + " u′v"]);
+    const b5 = { options: structOpts, correctIndex: structOpts.indexOf("u′v + uv′") };
+    const xA = a < 0 ? "(x " + MINUS + " " + Math.abs(a) + ")" : "(x + " + a + ")";
+    const xB = b < 0 ? "(x " + MINUS + " " + Math.abs(b) + ")" : "(x + " + b + ")";
+    return {
+      level: 4, type: "blanks",
+      renderPrompt: "f(x) = " + xA + sup(m) + " · " + xB + sup(n) + "   [u = " + xA + sup(m) + ", v = " + xB + sup(n) + "]",
+      renderTemplate: "u′ = {b1} · " + xA + "{b2:sup}     v′ = {b3} · " + xB + "{b4:sup}     f′(x) = {b5}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex },
+        { key: "b4", options: b4.options, correctIndex: b4.correctIndex },
+        { key: "b5", options: b5.options, correctIndex: b5.correctIndex }
+      ],
+      _check: (x) => (m * Math.pow(x + a, m - 1)) * v(x) + u(x) * (n * Math.pow(x + b, n - 1)),
+      _f: f
+    };
+  }
+
+  const L4_TEMPLATES = [q_L4_chainTimesPower, q_L4_chainWrapProduct, q_L4_quotientProductNumerator, q_L4_tripleChain, q_L4_productOfTwoChains];
+
+  function generateLevel4(numQuestions) {
+    numQuestions = numQuestions || 5;
+    const pool = shuffle(L4_TEMPLATES.slice());
+    const chosen = [];
+    for (let i = 0; i < numQuestions; i++) chosen.push(pool[i % pool.length]());
+    return chosen;
+  }
+
+  // ---------- exports ----------
+  const QuizLogic = {
+    rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
+    makeOptions, numDistractors, numericDerivative,
+    generateLevel1, generateLevel2, generateLevel3, generateLevel4,
+    L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
+  };
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = QuizLogic;
+  } else {
+    root.QuizLogic = QuizLogic;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
+
+
+// PART 2 — UI / interaction layer
+// =====================================================================
+(function () {
+  "use strict";
+  const QL = window.QuizLogic;
+  const app = document.getElementById("app");
+
+  const LEVELS = [
+    { num: 1, title: "Mix & Match", desc: "Match each function to its correct derivative. Click a function, then click its matching derivative.", gen: () => QL.generateLevel1(6), kind: "match" },
+    { num: 2, title: "Fill-in-the-Blank (Single Rule)", desc: "Each numeric part of the derivative — coefficients, exponents, symbols — is a dropdown blank. One rule at a time.", gen: () => QL.generateLevel2(5), kind: "blanks" },
+    { num: 3, title: "Combined (Up to 2 Layers)", desc: "Questions combine two rules — e.g. product rule with power rule, or chain rule wrapping a polynomial.", gen: () => QL.generateLevel3(5), kind: "blanks" },
+    { num: 4, title: "Advanced (Up to 3 Layers)", desc: "Nested and compound derivatives requiring three combined rules — the hardest tier.", gen: () => QL.generateLevel4(5), kind: "blanks" }
+  ];
+
+  const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
+
+  let state = { screen: "home" };
+
+  function render() {
+    if (state.screen === "home") renderHome();
+    else if (state.screen === "quiz") renderQuiz();
+    else if (state.screen === "summary") renderSummary();
+  }
+
+  function renderHome() {
+    let cardsHtml = LEVELS.map(lv => {
+      const best = bestScores[lv.num];
+      return `
+        <div class="level-card">
+          <h2><span class="level-num">${lv.num}</span>${escapeHtml(lv.title)}</h2>
+          <p>${escapeHtml(lv.desc)}</p>
+          ${best ? `<div class="best-score">Best this session: ${best.correct}/${best.total}</div>` : ""}
+          <button class="btn-primary" data-start-level="${lv.num}">Start Level ${lv.num}</button>
+        </div>`;
+    }).join("");
+
+    app.innerHTML = `
+      <header class="site-header">
+        <div class="badge">Randomized Every Attempt</div>
+        <h1>Derivatives Practice Quiz</h1>
+        <p>4 levels, from single-rule recall to 3-layer combined derivatives</p>
+      </header>
+      <div class="level-grid">${cardsHtml}</div>
+      <footer class="site-footer">Standalone quiz &middot; works fully offline &middot; refresh or retry for a brand-new random set every time &middot; <a href="./Calculus-Midterm-Reviewer-Corrected.pdf" target="_blank" rel="noopener" style="color:inherit;">Download the full reviewer PDF</a></footer>
+    `;
+
+    app.querySelectorAll("[data-start-level]").forEach(btn => {
+      btn.addEventListener("click", () => startLevel(parseInt(btn.dataset.startLevel, 10)));
+    });
+  }
+
+  function startLevel(num) {
+    const lv = LEVELS.find(l => l.num === num);
+    const questions = lv.gen();
+    state = {
+      screen: "quiz",
+      level: lv,
+      questions,
+      index: 0,
+      correctCount: 0,
+      // level-1 matching state:
+      matchedCount: 0,
+      selectedFuncIdx: null,
+      derivOrder: null,
+      matchedFuncIdxs: new Set(),
+      matchedDerivIdxs: new Set(),
+      attempts: 0,
+      // blanks state:
+      checked: false,
+      questionCorrect: null,
+      selectedAnswers: {} // blankIdx -> chosen option index, for the CURRENT question
+    };
+    render();
+  }
+
+  function renderQuiz() {
+    const lv = state.level;
+    if (lv.kind === "match") { renderMatchLevel(); return; }
+    renderBlanksLevel();
+  }
+
+  function renderTopbar(progressCurrent, progressTotal, extraInfo) {
+    const pct = Math.round((progressCurrent / progressTotal) * 100);
+    return `
+      <div class="quiz-topbar">
+        <button class="btn-ghost home-link" data-go-home>&larr; All Levels</button>
+        <div class="info">Level ${state.level.num}: <b>${escapeHtml(state.level.title)}</b> &nbsp;|&nbsp; ${extraInfo}</div>
+      </div>
+      <div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    `;
+  }
+
+  // ---------------- LEVEL 1: Matching ----------------
+  function renderMatchLevel() {
+    if (state.derivOrder === null) {
+      state.derivOrder = shuffleIdx(state.questions.length);
+    }
+    const total = state.questions.length;
+    const topbar = renderTopbar(state.matchedCount, total, `Matched ${state.matchedCount}/${total} &nbsp;|&nbsp; Attempts: ${state.attempts}`);
+
+    const leftCards = state.questions.map((q, i) => {
+      const isMatched = state.matchedFuncIdxs.has(i);
+      const isSelected = state.selectedFuncIdx === i;
+      return `<button class="match-card ${isMatched ? "matched" : ""} ${isSelected ? "selected" : ""}" data-func-idx="${i}" ${isMatched ? "disabled" : ""}>${escapeHtml(q.fLabel)}</button>`;
+    }).join("");
+
+    const rightCards = state.derivOrder.map((qIdx) => {
+      const isMatched = state.matchedDerivIdxs.has(qIdx);
+      return `<button class="match-card ${isMatched ? "matched" : ""}" data-deriv-idx="${qIdx}" ${isMatched ? "disabled" : ""}>${escapeHtml(state.questions[qIdx].dLabel)}</button>`;
+    }).join("");
+
+    app.innerHTML = `
+      ${topbar}
+      <div class="question-card">
+        <div class="qtag">Click a function, then click its derivative</div>
+        <div class="match-grid">
+          <div class="match-col"><h3>Functions</h3>${leftCards}</div>
+          <div class="match-col"><h3>Derivatives</h3>${rightCards}</div>
+        </div>
+        <div id="match-feedback"></div>
+      </div>
+    `;
+
+    app.querySelector("[data-go-home]").addEventListener("click", goHome);
+
+    app.querySelectorAll("[data-func-idx]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.selectedFuncIdx = parseInt(btn.dataset.funcIdx, 10);
+        renderMatchLevel();
+      });
+    });
+    app.querySelectorAll("[data-deriv-idx]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const derivIdx = parseInt(btn.dataset.derivIdx, 10);
+        if (state.selectedFuncIdx === null) return;
+        state.attempts++;
+        if (state.selectedFuncIdx === derivIdx) {
+          state.matchedFuncIdxs.add(derivIdx);
+          state.matchedDerivIdxs.add(derivIdx);
+          state.matchedCount++;
+          state.selectedFuncIdx = null;
+          if (state.matchedCount === state.questions.length) {
+            state.correctCount = state.questions.length; // all matched eventually
+            setTimeout(() => goSummary(), 400);
+            renderMatchLevel();
+            return;
+          }
+          renderMatchLevel();
+        } else {
+          const fbtn = app.querySelector(`[data-func-idx="${state.selectedFuncIdx}"]`);
+          fbtn.classList.add("wrong-flash");
+          btn.classList.add("wrong-flash");
+          setTimeout(() => {
+            state.selectedFuncIdx = null;
+            renderMatchLevel();
+          }, 500);
+        }
+      });
+    });
+  }
+
+  function shuffleIdx(n) {
+    const a = Array.from({ length: n }, (_, i) => i);
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // ---------------- LEVELS 2-4: Fill-in-the-blank ----------------
+  function renderBlanksLevel() {
+    const q = state.questions[state.index];
+    const total = state.questions.length;
+    const topbar = renderTopbar(state.index, total, `Question ${state.index + 1}/${total} &nbsp;|&nbsp; Score: ${state.correctCount}/${state.index}`);
+
+    const templateHtml = renderTemplate(q.renderTemplate, q.blanks, state.checked, state.selectedAnswers);
+
+    app.innerHTML = `
+      ${topbar}
+      <div class="question-card">
+        <div class="qtag">Question ${state.index + 1} of ${total}</div>
+        <div class="question-prompt">${q.renderPrompt}</div>
+        <div class="template-line">${templateHtml}</div>
+        <div class="actions-row">
+          ${state.checked
+            ? `<button class="btn-primary" data-next>${state.index + 1 < total ? "Next Question →" : "See Results"}</button>`
+            : `<button class="btn-primary" data-check>Check Answer</button>`}
+          <button class="btn-ghost" data-go-home>Exit to Menu</button>
+        </div>
+        ${state.checked ? `<div class="feedback-msg ${state.questionCorrect ? "correct" : "incorrect"}">${state.questionCorrect ? "✓ Correct!" : "✗ Not quite — review the highlighted blanks."}</div>` : ""}
+      </div>
+    `;
+
+    app.querySelector("[data-go-home]").addEventListener("click", goHome);
+
+    if (!state.checked) {
+      // live-track selections so a mid-question re-render (there isn't one today,
+      // but this keeps state authoritative) and the eventual Check-time render
+      // both reflect exactly what the student picked.
+      app.querySelectorAll("select.blank").forEach(sel => {
+        sel.addEventListener("change", () => {
+          state.selectedAnswers[sel.dataset.blankIdx] = sel.value === "" ? undefined : parseInt(sel.value, 10);
+        });
+      });
+    }
+
+    if (state.checked) {
+      app.querySelector("[data-next]").addEventListener("click", () => {
+        state.index++;
+        state.checked = false;
+        state.questionCorrect = null;
+        state.selectedAnswers = {};
+        if (state.index >= total) { goSummary(); return; }
+        render();
+      });
+    } else {
+      app.querySelector("[data-check]").addEventListener("click", () => {
+        const selects = app.querySelectorAll("select.blank");
+        let allAnswered = true;
+        selects.forEach(sel => { if (sel.value === "") allAnswered = false; });
+        if (!allAnswered) {
+          alert("Please answer every blank before checking.");
+          return;
+        }
+        let allCorrect = true;
+        selects.forEach(sel => {
+          const blankIdx = parseInt(sel.dataset.blankIdx, 10);
+          const chosen = parseInt(sel.value, 10);
+          state.selectedAnswers[blankIdx] = chosen;
+          if (chosen !== q.blanks[blankIdx].correctIndex) allCorrect = false;
+        });
+        state.checked = true;
+        state.questionCorrect = allCorrect;
+        if (allCorrect) state.correctCount++;
+        render();
+      });
+    }
+  }
+
+  // Parses a template string like "f′(x) = {b1} · x{b2:sup}" into HTML with <select> blanks.
+  // selectedAnswers maps blankIdx -> chosen option index for THIS question, so that a
+  // full re-render after "Check" still shows what the student picked (with correct/
+  // incorrect coloring) instead of resetting the dropdowns to their default option.
+  function renderTemplate(tmpl, blanks, checked, selectedAnswers) {
+    const blankByKey = {};
+    blanks.forEach((b, i) => { blankByKey[b.key] = { ...b, idx: i }; });
+    return tmpl.replace(/\{(\w+)(:sup)?\}/g, (match, key, supFlag) => {
+      const b = blankByKey[key];
+      if (!b) return match;
+      const chosenIdx = selectedAnswers[b.idx];
+      const isCorrect = checked && chosenIdx === b.correctIndex;
+      const isIncorrect = checked && chosenIdx !== undefined && chosenIdx !== b.correctIndex;
+      const stateClass = (isCorrect ? "correct" : (isIncorrect ? "incorrect" : "")) + (supFlag ? " blank-sup" : "");
+      const placeholderSelected = chosenIdx === undefined;
+      const optsHtml = `<option value="" ${placeholderSelected ? "selected" : ""} disabled hidden>?</option>` +
+        b.options.map((opt, oi) => `<option value="${oi}" ${oi === chosenIdx ? "selected" : ""}>${escapeHtml(opt)}</option>`).join("");
+      const selHtml = `<select class="blank ${stateClass}" data-blank-idx="${b.idx}" ${checked ? "disabled" : ""}>${optsHtml}</select>`;
+      const hintHtml = isIncorrect ? `<span class="correct-hint">✓ ${escapeHtml(b.options[b.correctIndex])}</span>` : "";
+      return selHtml + hintHtml;
+    });
+  }
+
+  function goHome() { state = { screen: "home" }; render(); }
+
+  function goSummary() {
+    bestScores[state.level.num] = { correct: state.correctCount, total: state.questions.length };
+    state.screen = "summary";
+    render();
+  }
+
+  function renderSummary() {
+    const total = state.questions.length;
+    const correct = state.correctCount;
+    const pct = Math.round((correct / total) * 100);
+    let msg;
+    if (pct === 100) msg = "Perfect score! You've mastered this level.";
+    else if (pct >= 70) msg = "Solid work — review the ones you missed and try again.";
+    else msg = "Keep practicing — try this level again with a fresh random set.";
+
+    const nextLevel = LEVELS.find(l => l.num === state.level.num + 1);
+
+    app.innerHTML = `
+      <div class="summary-card">
+        <div class="qtag" style="text-align:center;">Level ${state.level.num}: ${escapeHtml(state.level.title)} — Complete</div>
+        <div class="summary-score">${correct}<span> / ${total}</span></div>
+        <div class="summary-msg">${msg}</div>
+        <div class="actions-row" style="justify-content:center;">
+          <button class="btn-primary" data-retry>↻ Retry (New Random Set)</button>
+          ${nextLevel ? `<button class="btn-primary" data-next-level>Next: Level ${nextLevel.num} →</button>` : ""}
+          <button class="btn-secondary" data-go-home>All Levels</button>
+        </div>
+      </div>
+    `;
+    app.querySelector("[data-retry]").addEventListener("click", () => startLevel(state.level.num));
+    app.querySelector("[data-go-home]").addEventListener("click", goHome);
+    if (nextLevel) app.querySelector("[data-next-level]").addEventListener("click", () => startLevel(nextLevel.num));
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
