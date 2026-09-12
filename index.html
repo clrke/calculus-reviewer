@@ -1993,12 +1993,129 @@
     return pool.slice(0, numQuestions).map(gen => gen());
   }
 
+  // =========================================================================
+  // DERIVATIVE BY DEFINITION (increment/four-step method) MOCK EXAM.
+  // Unlike Limits/Optimization/Implicit-Diff, every question here is an
+  // EXPLICIT single-argument function of x, so numericDerivative() (the same
+  // ground-truth check used for every derivative-level template) applies
+  // directly with zero new verification machinery. The two trig questions
+  // are fixed-shape (same pattern as the product/quotient-rule conceptual
+  // questions) since sin(x)/cos(x) have no parameter to randomize.
+  // =========================================================================
+
+  function q_def_linear() {
+    const a = rnd(2, 9) * pick([1, -1]);
+    const b = rnd(-9, 9);
+    const correct = numToStr(a);
+    const opts = makeOptions({ label: correct, val: a }, numDistractors(a, [-1, 1, b, -b, 2, -2]));
+    return {
+      fLabel: "y = " + formatLinear(a, b) + ". Find y′ using the definition of the derivative (increment method).",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  function q_def_rationalGeneral() {
+    const c = rnd(2, 9) * pick([1, -1]);
+    let d = rnd(-9, 9);
+    if (d === 0) d = 3; // avoid the cosmetic redundancy of "(x)²" vs "x²"
+    const base = "(" + formatLinear(1, d) + ")" + sup(2);
+    const correct = numToStr(-c) + "/" + base;
+    const options = shuffle([
+      correct,
+      numToStr(c) + "/" + base,
+      numToStr(-c) + "/(" + formatLinear(1, d) + ")",
+      numToStr(-2 * c) + "/" + base
+    ]);
+    return {
+      fLabel: "f(x) = " + numToStr(c) + "/(" + formatLinear(1, d) + "). Find f′(x) using the definition of the derivative (increment method).",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_def_radicalGeneral() {
+    const k = rnd(1, 20);
+    const correct = "1/(2√(x + " + k + "))";
+    const options = shuffle([
+      correct,
+      "1/√(x + " + k + ")",
+      "2/√(x + " + k + ")",
+      MINUS + "1/(2√(x + " + k + "))"
+    ]);
+    return {
+      fLabel: "f(x) = √(x + " + k + "). Find f′(x) using the definition of the derivative (increment method).",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_def_sin() {
+    const options = shuffle(["cos x", MINUS + "cos x", "sin x", MINUS + "sin x"]);
+    return {
+      fLabel: "y = sin x. Find y′ using the definition of the derivative (increment method).",
+      options, correctIndex: options.indexOf("cos x")
+    };
+  }
+
+  function q_def_cos() {
+    const options = shuffle([MINUS + "sin x", "sin x", "cos x", MINUS + "cos x"]);
+    return {
+      fLabel: "y = cos x. Find y′ using the definition of the derivative (increment method).",
+      options, correctIndex: options.indexOf(MINUS + "sin x")
+    };
+  }
+
+  function q_def_rationalPointSlope() {
+    let c, d, x0, denom;
+    do {
+      c = rnd(2, 9) * pick([1, -1]);
+      d = rnd(-6, 6);
+      x0 = rnd(-6, 6);
+      denom = x0 + d;
+    } while (denom === 0);
+    const denomSq = denom * denom;
+    const correct = fmtFraction(-c, denomSq);
+    const candidateLabels = [
+      fmtFraction(c, denomSq),
+      fmtFraction(-c, denom),
+      fmtFraction(-2 * c, denomSq)
+    ];
+    const opts = makeOptions(
+      { label: correct, val: correct },
+      candidateLabels.map(label => ({ label, val: label }))
+    );
+    return {
+      fLabel: "f(x) = " + numToStr(c) + "/(" + formatLinear(1, d) + "). Using the definition of the derivative, find f′(" + numToStr(x0) + ").",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  function q_def_cubicPointSlope() {
+    const a = rnd(-9, 9) || 3;
+    const x0 = rnd(-5, 5);
+    const slope = 3 * x0 * x0 + a;
+    const opts = makeOptions({ label: numToStr(slope), val: slope }, numDistractors(slope, [-1, 1, a, -a, x0, -x0]));
+    return {
+      fLabel: "y = x³ " + (a < 0 ? MINUS + " " + formatMono(Math.abs(a), 1) : "+ " + formatMono(a, 1)) + ". Using the definition of the derivative, find the slope of the tangent line at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  const DEFINITION_EXAM_GENERATORS = [
+    q_def_linear, q_def_rationalGeneral, q_def_radicalGeneral, q_def_sin, q_def_cos,
+    q_def_rationalPointSlope, q_def_cubicPointSlope
+  ];
+
+  function generateDefinitionExam(numQuestions) {
+    numQuestions = numQuestions || DEFINITION_EXAM_GENERATORS.length;
+    const pool = shuffle(DEFINITION_EXAM_GENERATORS.slice());
+    return pool.slice(0, numQuestions).map(gen => gen());
+  }
+
   // ---------- exports ----------
   const QuizLogic = {
     rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
     makeOptions, numDistractors, numericDerivative,
     generateLevel0, generateLevel1, generateLevel2, generateLevel3, generateLevel4,
-    generateLimitsExam, generateOptimizationExam, generateImplicitExam,
+    generateLimitsExam, generateOptimizationExam, generateImplicitExam, generateDefinitionExam,
     L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
   };
 
@@ -2032,7 +2149,8 @@
   const EXAMS = [
     { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true },
     { num: 101, title: "Optimization Mock Exam", desc: "7 classic maxima/minima applications: minimizing sums, fencing/area problems, box-cutting, page margins, inscribed shapes, and the rowboat direction problem.", gen: () => QL.generateOptimizationExam(7), kind: "mc", isExam: true },
-    { num: 102, title: "Implicit Differentiation Mock Exam", desc: "5 questions on finding dy/dx (and y″) for equations that mix x and y, plus evaluating the tangent slope at a specific point on an implicit curve.", gen: () => QL.generateImplicitExam(5), kind: "mc", isExam: true }
+    { num: 102, title: "Implicit Differentiation Mock Exam", desc: "5 questions on finding dy/dx (and y″) for equations that mix x and y, plus evaluating the tangent slope at a specific point on an implicit curve.", gen: () => QL.generateImplicitExam(5), kind: "mc", isExam: true },
+    { num: 103, title: "Derivative by Definition Mock Exam", desc: "7 questions using the increment (four-step) method: linear, rational, radical, and trig functions, plus evaluating the slope at a specific point.", gen: () => QL.generateDefinitionExam(7), kind: "mc", isExam: true }
   ];
 
   const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
