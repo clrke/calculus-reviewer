@@ -134,6 +134,11 @@
     font-size: 1.12rem; font-family: "Cambria Math", Cambria, Georgia, serif;
     line-height: 2.6; color: #222;
   }
+  .template-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px;
+    padding: 7px 0; border-bottom: 1px dashed #e9ebef;
+  }
+  .template-row:last-child { border-bottom: none; }
   select.blank {
     font-family: inherit; font-size: 1rem; font-weight: 700;
     color: var(--blue); background: #eef3fc;
@@ -320,6 +325,45 @@
   }
 
   .mistake-hint { font-size: 0.68rem; color: #7a6f82; margin-top: 12px; letter-spacing: 0.02em; }
+
+  /* ===================== Mobile ===================== */
+  @media (max-width: 600px) {
+    #app { padding: 16px 12px 40px; }
+    header.site-header { padding: 22px 14px 16px; border-radius: 0 0 14px 14px; }
+    header.site-header h1 { font-size: 1.35rem; }
+    header.site-header p { font-size: 0.85rem; }
+    .badge { font-size: 0.66rem; padding: 3px 10px; }
+
+    .level-card { padding: 16px; }
+    .level-card h2 { font-size: 1.02rem; }
+    .level-card p { font-size: 0.85rem; }
+
+    .question-card { padding: 18px 16px; }
+    .question-prompt { font-size: 1rem; line-height: 1.5; margin-bottom: 16px; }
+    .template-line { font-size: 1rem; line-height: 1.9; }
+    .template-row { padding: 8px 0; }
+    select.blank { font-size: 0.92rem; padding: 5px 6px; }
+    select.blank.blank-sup { font-size: 0.66em; }
+    .correct-hint { display: block; margin: 2px 0 0; }
+
+    .actions-row { gap: 8px; }
+    .actions-row .btn-primary { flex: 1 1 auto; text-align: center; }
+
+    .match-card { padding: 11px 12px; font-size: 0.92rem; }
+
+    .mistake-card { padding: 20px 18px 16px; max-width: 92vw; }
+    .mistake-banner { font-size: 1.7rem; }
+    .exp-stage { font-size: 1.55rem; gap: 10px; }
+    .exp-arrow { font-size: 1.2rem; }
+    .exp-flying-clone { font-size: 1.55rem; }
+    .reveal-answer { font-size: 1.25rem; padding: 8px 16px; }
+
+    .quiz-topbar { gap: 6px; }
+    .quiz-topbar .info { font-size: 0.8rem; }
+
+    .summary-card { padding: 24px 18px; }
+    .summary-score { font-size: 2.4rem; }
+  }
 </style>
 </head>
 <body>
@@ -1239,7 +1283,7 @@
   function renderTemplate(tmpl, blanks, checked, selectedAnswers) {
     const blankByKey = {};
     blanks.forEach((b, i) => { blankByKey[b.key] = { ...b, idx: i }; });
-    return tmpl.replace(/\{(\w+)(:sup)?\}/g, (match, key, supFlag) => {
+    const filled = tmpl.replace(/\{(\w+)(:sup)?\}/g, (match, key, supFlag) => {
       const b = blankByKey[key];
       if (!b) return match;
       const chosenIdx = selectedAnswers[b.idx];
@@ -1253,6 +1297,13 @@
       const hintHtml = isIncorrect ? `<span class="correct-hint">✓ ${escapeHtml(b.options[b.correctIndex])}</span>` : "";
       return selHtml + hintHtml;
     });
+    // Templates use runs of 3+ literal spaces as an intentional "new sub-step" separator
+    // (e.g. "u′ = ...     v′ = ...     f′(x) = ..."). Render each as its own row instead
+    // of one long inline string — on narrow screens that string wraps at arbitrary points
+    // mid-phrase (a lone dropdown stranded on its own line, disconnected from its label).
+    const rows = filled.split(/ {3,}/).filter(r => r.trim().length > 0);
+    if (rows.length <= 1) return filled;
+    return rows.map(r => `<div class="template-row">${r}</div>`).join("");
   }
 
   // ---------------- Mistake pop-up (immediate, arcade "took damage" hit) ----------------
