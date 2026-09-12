@@ -141,6 +141,49 @@
     font-size: 0.85rem; color: var(--blue); background: #eef3fc;
     border-radius: 8px; padding: 8px 12px; margin: -12px 0 18px; display: inline-block;
   }
+
+  /* --- shape diagrams (shown with the question) & function/tangent graphs (shown after answering) --- */
+  .q-diagram, .q-graph {
+    display: flex; justify-content: center; margin: -4px 0 20px;
+    background: #f7f9fc; border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+  }
+  .diagram-svg, .fn-graph-svg { width: 100%; max-width: 280px; height: auto; }
+  .diag-line { stroke: var(--navy); stroke-width: 1.6; fill: none; }
+  .diag-line-inner { stroke: var(--blue-light); stroke-width: 1.3; }
+  .diag-tick { stroke: var(--navy); stroke-width: 1.6; }
+  .diag-tick-accent { stroke: var(--blue); stroke-width: 2; }
+  .diag-rect { stroke: var(--navy); stroke-width: 1.6; fill: none; }
+  .diag-rect-fill { fill: rgba(47,95,168,0.1); stroke: var(--blue); }
+  .diag-tri { stroke: var(--navy); stroke-width: 1.6; fill: rgba(26,35,50,0.04); }
+  .diag-cut { fill: rgba(179,38,30,0.12); stroke: var(--red); stroke-width: 1.2; stroke-dasharray: 3,2; }
+  .diag-river { stroke: var(--blue-light); stroke-width: 3; fill: none; opacity: 0.7; }
+  .diag-dot { fill: var(--navy); }
+  .diag-ellipse-base { fill: rgba(47,95,168,0.12); stroke: var(--blue); stroke-width: 1.5; }
+  .diag-ellipse-top { fill: rgba(255,255,255,0.5); stroke: var(--blue); stroke-width: 1.5; }
+  .diag-iso-top { fill: #9fbde8; stroke: var(--navy); stroke-width: 1; }
+  .diag-iso-side { fill: #6f97cf; stroke: var(--navy); stroke-width: 1; }
+  .diag-iso-side-dark { fill: #4d7fbc; stroke: var(--navy); stroke-width: 1; }
+  .diag-label {
+    font: 700 10px/1 "Cambria Math", Cambria, Georgia, serif; fill: var(--navy);
+  }
+  .diag-label-muted { fill: var(--gray); font-weight: 600; font-size: 9px; }
+  .diag-label-tiny { font-size: 9px; }
+
+  .q-graph-title { width: 100%; text-align: center; font-size: 0.72rem; color: var(--gray); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+  .fn-legend-bg { fill: rgba(255,255,255,0.82); }
+  .fn-curve-f { stroke: var(--blue); stroke-width: 2; fill: none; }
+  .fn-curve-df { stroke: #e08a2b; stroke-width: 2; fill: none; stroke-dasharray: 5,3; }
+  .fn-line-tangent { stroke: var(--green); stroke-width: 2; fill: none; }
+  .fn-line-normal { stroke: #b3261e; stroke-width: 2; fill: none; }
+  .fn-zero-line { stroke: var(--gray); stroke-width: 1; stroke-dasharray: 2,2; opacity: 0.6; }
+  .fn-crit-line { stroke: var(--navy); stroke-width: 1; stroke-dasharray: 3,3; opacity: 0.5; }
+  .fn-dot-f { fill: var(--blue); }
+  .fn-dot-df { fill: #e08a2b; }
+  .fn-legend { font: 700 9px/1 "Cambria Math", Cambria, Georgia, serif; }
+  .fn-legend-f { fill: var(--blue); }
+  .fn-legend-df { fill: #e08a2b; }
+  .fn-legend-tangent { fill: var(--green); }
+  .fn-legend-normal { fill: #b3261e; }
   .template-line {
     font-size: 1.12rem; font-family: "Cambria Math", Cambria, Georgia, serif;
     line-height: 2.6; color: #222;
@@ -1777,7 +1820,13 @@
     return {
       fLabel: "Two numbers have a sum of " + S + ". Find the two numbers that minimize the sum of their squares.",
       options, correctIndex: options.indexOf(correct),
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "sumOfSquares", S },
+      graph: {
+        kind: "fn-deriv", fn: x => x * x + (S - x) * (S - x), dfn: x => 4 * x - 2 * S,
+        xMin: 0, xMax: S, xStar: S / 2,
+        fnLabel: "f(x) = x² + (S−x)²", dfnLabel: "f′(x) = 4x − 2S"
+      }
     };
   }
 
@@ -1793,7 +1842,13 @@
     return {
       fLabel: "A farmer has " + P + "m of fencing for a rectangular field along a straight river (no fence needed along the river). Let x be each of the two sides perpendicular to the river, and y the side parallel to it. Find the dimensions of largest area.",
       options, correctIndex: options.indexOf(correct),
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "fenceRiver", P, x: P / 4, y: P / 2 },
+      graph: {
+        kind: "fn-deriv", fn: x => x * (P - 2 * x), dfn: x => P - 4 * x,
+        xMin: 0, xMax: P / 2, xStar: P / 4,
+        fnLabel: "A(x) = x(P−2x)", dfnLabel: "A′(x) = P−4x"
+      }
     };
   }
 
@@ -1809,7 +1864,13 @@
     return {
       fLabel: "A rectangular field is enclosed by a fence and divided into 3 equal lots by 2 fences parallel to one side, using " + P + " ft of fencing total. Find the overall dimensions (total width by height) of the largest field.",
       options, correctIndex: options.indexOf(correct),
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "threeLotFence", W: P / 4, H: P / 8 },
+      graph: {
+        kind: "fn-deriv", fn: h => h * (P - 4 * h) / 2, dfn: h => (P - 8 * h) / 2,
+        xMin: 0, xMax: P / 4, xStar: P / 8,
+        fnLabel: "A(h) = h(P−4h)/2", dfnLabel: "A′(h) = (P−8h)/2"
+      }
     };
   }
 
@@ -1837,7 +1898,13 @@
     return {
       fLabel: "A box is made from a " + L + "x" + W + " in cardboard sheet by cutting equal squares from the corners and folding up the sides. Find the side length of the square that maximizes the box's volume.",
       options: opts.options, correctIndex: opts.correctIndex,
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "boxCutting", L, W, x: x0 },
+      graph: {
+        kind: "fn-deriv", fn: x => x * (L - 2 * x) * (W - 2 * x), dfn: x => L * W - 4 * (L + W) * x + 12 * x * x,
+        xMin: 0, xMax: Math.min(L, W) / 2, xStar: x0,
+        fnLabel: "V(x) = x(L−2x)(W−2x)", dfnLabel: "V′(x) = LW−4(L+W)x+12x²"
+      }
     };
   }
 
@@ -1869,7 +1936,13 @@
     return {
       fLabel: "A rectangular page must contain " + k + " sq in of print, with " + a + "in margins on the left/right and " + b + "in margins on the top/bottom. Find the page dimensions that use the least paper.",
       options: opts.options, correctIndex: opts.correctIndex,
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "pageMargins", a, b, t },
+      graph: {
+        kind: "fn-deriv", fn: x => (x + 2 * a) * (k / x + 2 * b), dfn: x => 2 * b - 2 * a * k / (x * x),
+        xMin: Math.max(0.5, a * t * 0.2), xMax: a * t * 2.2, xStar: a * t,
+        fnLabel: "T(x) = (x+2a)(k/x+2b)", dfnLabel: "T′(x) = 2b−2ak/x²"
+      }
     };
   }
 
@@ -1886,7 +1959,13 @@
     return {
       fLabel: "A triangle has a base " + B + " ft long and an altitude " + H + " ft high. Find the area of the largest rectangle that can be inscribed with its base on the triangle's base.",
       options, correctIndex: options.indexOf(correct),
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "inscribedRectangle", B, H },
+      graph: {
+        kind: "fn-deriv", fn: y => y * B * (1 - y / H), dfn: y => B - 2 * B * y / H,
+        xMin: 0, xMax: H, xStar: H / 2,
+        fnLabel: "A(y) = By(1−y/H)", dfnLabel: "A′(y) = B−2By/H"
+      }
     };
   }
 
@@ -1903,7 +1982,13 @@
     return {
       fLabel: "Find the height of the cylinder of maximum volume that can be inscribed in a right circular cone of radius " + R + " ft and height " + H + " ft.",
       options, correctIndex: options.indexOf(correct),
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "coneCylinder", R, H, h: H / 3 },
+      graph: {
+        kind: "fn-deriv", fn: h => h * (1 - h / H) * (1 - h / H), dfn: h => (1 - h / H) * (1 - 3 * h / H),
+        xMin: 0, xMax: H, xStar: H / 3,
+        fnLabel: "V(h) ∝ h(1−h/H)²", dfnLabel: "V′(h) ∝ (1−h/H)(1−3h/H)"
+      }
     };
   }
 
@@ -1941,7 +2026,14 @@
       fLabel: "A person in a rowboat " + d + " miles from shore wants to reach a point " + shoreDist + " miles (straight-line) from their position, then continue on foot. Rowing at " + rowSpeed + " mph and walking at " + walkSpeed +
         " mph, find the angle (from the shortest path straight to shore) they should row to minimize total travel time.",
       options, correctIndex: options.indexOf(correct),
-      optCritShape: true
+      optCritShape: true,
+      shape: { type: "rowboat", d, shoreDist, L, xStar },
+      graph: {
+        kind: "fn-deriv", fn: x => Math.sqrt(d * d + x * x) / rowSpeed + (L - x) / walkSpeed,
+        dfn: x => x / (rowSpeed * Math.sqrt(d * d + x * x)) - 1 / walkSpeed,
+        xMin: 0, xMax: L, xStar,
+        fnLabel: "T(x) = √(d²+x²)/row + (L−x)/walk", dfnLabel: "T′(x) = x/(row·√(d²+x²)) − 1/walk"
+      }
     };
   }
 
@@ -2264,12 +2356,230 @@
     return pool.slice(0, numQuestions).map(gen => gen());
   }
 
+  // =========================================================================
+  // TANGENT & NORMAL LINES MOCK EXAM — a separate topic from the derivative
+  // levels above. Every generator forces an exact answer by construction
+  // (integer slopes, or reduced fractions via fmtFraction); the "normal line
+  // equation" questions specifically constrain the tangent slope to ±1 so the
+  // perpendicular (normal) slope also comes out as a clean integer instead of
+  // a fraction baked into a line equation. Each question also carries a
+  // `graph` field (curve + the actual tangent/normal line through the point)
+  // that PART 2 renders only AFTER the question is answered, since the line's
+  // slope literally is the answer.
+  // =========================================================================
+
+  function q_tan_slopeQuadratic() {
+    const A = rnd(1, 6) * pick([1, -1]);
+    const B = rnd(-8, 8);
+    const C = rnd(-8, 8);
+    const x0 = rnd(-6, 6);
+    const slope = 2 * A * x0 + B;
+    const opts = makeOptions({ label: numToStr(slope), val: slope }, numDistractors(slope, [-1, 1, A, -A, x0, -x0]));
+    return {
+      fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0: A * x0 * x0 + B * x0 + C,
+        xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope, type: "tangent" }]
+      }
+    };
+  }
+
+  function q_tan_lineQuadratic() {
+    const A = rnd(1, 4) * pick([1, -1]);
+    const B = rnd(-6, 6);
+    const C = rnd(-6, 6);
+    const x0 = rnd(-5, 5);
+    const y0 = A * x0 * x0 + B * x0 + C;
+    const m = 2 * A * x0 + B;
+    const b = y0 - m * x0;
+    const correct = "y = " + formatLinear(m, b);
+    const candidateLabels = [
+      "y = " + formatLinear(-m, b),
+      "y = " + formatLinear(m, -b),
+      "y = " + formatLinear(m, y0),
+      "y = " + formatLinear(m, b + 2)
+    ];
+    const opts = makeOptions({ label: correct, val: correct }, candidateLabels.map(label => ({ label, val: label })));
+    return {
+      fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the equation of the tangent line to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0,
+        xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope: m, type: "tangent" }]
+      }
+    };
+  }
+
+  function q_norm_slopeQuadratic() {
+    let A, B, C, x0, m;
+    do {
+      A = rnd(1, 5) * pick([1, -1]);
+      B = rnd(-8, 8);
+      C = rnd(-8, 8);
+      x0 = rnd(-6, 6);
+      m = 2 * A * x0 + B;
+    } while (m === 0);
+    const correct = fmtFraction(-1, m);
+    const candidateLabels = [
+      fmtFraction(1, m),
+      numToStr(m),
+      fmtFraction(-1, 2 * m)
+    ];
+    const opts = makeOptions({ label: correct, val: correct }, candidateLabels.map(label => ({ label, val: label })));
+    return {
+      fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the slope of the line normal (perpendicular) to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0: A * x0 * x0 + B * x0 + C,
+        xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope: -1 / m, type: "normal" }]
+      }
+    };
+  }
+
+  function q_norm_lineQuadratic() {
+    const A = rnd(1, 4) * pick([1, -1]);
+    const x0 = rnd(-5, 5);
+    const m = pick([1, -1]); // tangent slope forced to +-1 so -1/m (the normal slope) stays an integer too
+    const B = m - 2 * A * x0;
+    const C = rnd(-6, 6);
+    const y0 = A * x0 * x0 + B * x0 + C;
+    const mn = -m;
+    const bn = y0 - mn * x0;
+    const correct = "y = " + formatLinear(mn, bn);
+    const candidateLabels = [
+      "y = " + formatLinear(m, bn),
+      "y = " + formatLinear(mn, -bn),
+      "y = " + formatLinear(mn, y0),
+      "y = " + formatLinear(mn, bn + 2)
+    ];
+    const opts = makeOptions({ label: correct, val: correct }, candidateLabels.map(label => ({ label, val: label })));
+    return {
+      fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the equation of the line normal to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0,
+        xMin: x0 - 5, xMax: x0 + 5, lines: [{ slope: mn, type: "normal" }]
+      }
+    };
+  }
+
+  function q_tan_slopeCubic() {
+    const a = rnd(-9, 9) || 3;
+    const b = rnd(-6, 6);
+    const x0 = rnd(-5, 5);
+    const slope = 3 * x0 * x0 + a;
+    const opts = makeOptions({ label: numToStr(slope), val: slope }, numDistractors(slope, [-1, 1, a, -a, x0, -x0]));
+    const aPart = a < 0 ? " " + MINUS + " " + formatMono(Math.abs(a), 1) : " + " + formatMono(a, 1);
+    const bPart = b === 0 ? "" : (b < 0 ? " " + MINUS + " " + Math.abs(b) : " + " + b);
+    return {
+      fLabel: "f(x) = x³" + aPart + bPart + ". Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => x * x * x + a * x + b, x0, y0: x0 * x0 * x0 + a * x0 + b,
+        xMin: x0 - 3, xMax: x0 + 3, lines: [{ slope, type: "tangent" }]
+      }
+    };
+  }
+
+  // Reverse-parametrized like the box-cutting optimization question: pick the
+  // answer x0 FIRST, then set B = -2Ax0 so the horizontal-tangent point lands
+  // exactly on it (generically the critical point of a random quadratic is
+  // already exact here, but fixing it this way keeps the pattern consistent
+  // with the rest of this file and guarantees a clean integer every time).
+  function q_tan_horizontalX() {
+    const A = rnd(1, 5) * pick([1, -1]);
+    const x0 = rnd(-6, 6);
+    const B = -2 * A * x0;
+    const C = rnd(-8, 8);
+    const opts = makeOptions({ label: numToStr(x0), val: x0 }, numDistractors(x0, [-1, 1, 2, -2, A, -A]));
+    return {
+      fLabel: "f(x) = " + formatQuadratic(A, B, C) + ". Find the x-coordinate where the tangent line to f(x) is horizontal.",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => A * x * x + B * x + C, x0, y0: A * x0 * x0 + B * x0 + C,
+        xMin: x0 - 6, xMax: x0 + 6, lines: [{ slope: 0, type: "tangent" }]
+      }
+    };
+  }
+
+  function q_tan_slopeRational() {
+    let d, x0, denom;
+    do {
+      d = rnd(-6, 6);
+      x0 = rnd(-6, 6);
+      denom = x0 + d;
+    } while (denom === 0);
+    const k = rnd(2, 20) * pick([1, -1]);
+    const denomSq = denom * denom;
+    const correct = fmtFraction(-k, denomSq);
+    const candidateLabels = [
+      fmtFraction(k, denomSq),
+      fmtFraction(-k, denom),
+      fmtFraction(-2 * k, denomSq)
+    ];
+    const opts = makeOptions({ label: correct, val: correct }, candidateLabels.map(label => ({ label, val: label })));
+    const asym = -d;
+    let xMin = x0 - 5, xMax = x0 + 5;
+    if (x0 > asym) xMin = Math.max(xMin, asym + 0.5); else xMax = Math.min(xMax, asym - 0.5);
+    return {
+      fLabel: "f(x) = " + numToStr(k) + "/(" + formatLinear(1, d) + "). Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => k / (x + d), x0, y0: k / denom,
+        xMin, xMax, lines: [{ slope: -k / denomSq, type: "tangent" }]
+      }
+    };
+  }
+
+  function q_tan_slopeRadical() {
+    const A = rnd(1, 6) * pick([1, -1]);
+    const x0 = pick([1, 4, 9, 16, 25]);
+    const sqrtX0 = Math.sqrt(x0);
+    const correct = fmtFraction(A, 2 * sqrtX0);
+    const candidateLabels = [
+      fmtFraction(A, sqrtX0),
+      fmtFraction(-A, 2 * sqrtX0),
+      fmtFraction(2 * A, sqrtX0)
+    ];
+    const opts = makeOptions({ label: correct, val: correct }, candidateLabels.map(label => ({ label, val: label })));
+    const coefPart = A === 1 ? "" : A === -1 ? MINUS : String(A);
+    return {
+      fLabel: "f(x) = " + coefPart + "√x. Find the slope of the tangent line to f(x) at x = " + numToStr(x0) + ".",
+      options: opts.options, correctIndex: opts.correctIndex,
+      tanNormalShape: true,
+      graph: {
+        kind: "curve-line", curveFn: x => A * Math.sqrt(x), x0, y0: A * sqrtX0,
+        xMin: 0, xMax: x0 + 15, lines: [{ slope: A / (2 * sqrtX0), type: "tangent" }]
+      }
+    };
+  }
+
+  const TANGENT_NORMAL_EXAM_GENERATORS = [
+    q_tan_slopeQuadratic, q_tan_lineQuadratic, q_norm_slopeQuadratic, q_norm_lineQuadratic,
+    q_tan_slopeCubic, q_tan_horizontalX, q_tan_slopeRational, q_tan_slopeRadical
+  ];
+
+  function generateTangentNormalExam(numQuestions) {
+    numQuestions = numQuestions || TANGENT_NORMAL_EXAM_GENERATORS.length;
+    const pool = shuffle(TANGENT_NORMAL_EXAM_GENERATORS.slice());
+    return pool.slice(0, numQuestions).map(gen => gen());
+  }
+
   // ---------- exports ----------
   const QuizLogic = {
     rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
     makeOptions, numDistractors, numericDerivative,
     generateLevel0, generateLevel1, generateLevel2, generateLevel3, generateLevel4,
     generateLimitsExam, generateOptimizationExam, generateImplicitExam, generateDefinitionExam,
+    generateTangentNormalExam,
     L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
   };
 
@@ -2304,7 +2614,8 @@
     { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true },
     { num: 101, title: "Optimization Mock Exam", desc: "7 classic maxima/minima applications: minimizing sums, fencing/area problems, box-cutting, page margins, inscribed shapes, and the rowboat direction problem.", gen: () => QL.generateOptimizationExam(7), kind: "mc", isExam: true },
     { num: 102, title: "Implicit Differentiation Mock Exam", desc: "6 questions on finding dy/dx (and y″) for equations that mix x and y, plus evaluating the tangent slope at a specific point on an implicit curve.", gen: () => QL.generateImplicitExam(6), kind: "mc", isExam: true },
-    { num: 103, title: "Derivative by Definition Mock Exam", desc: "8 questions using the increment (four-step) method: linear, quadratic, rational, radical, and trig functions, plus evaluating the slope at a specific point.", gen: () => QL.generateDefinitionExam(8), kind: "mc", isExam: true }
+    { num: 103, title: "Derivative by Definition Mock Exam", desc: "8 questions using the increment (four-step) method: linear, quadratic, rational, radical, and trig functions, plus evaluating the slope at a specific point.", gen: () => QL.generateDefinitionExam(8), kind: "mc", isExam: true },
+    { num: 104, title: "Tangent & Normal Lines Mock Exam", desc: "8 questions on tangent/normal slopes and line equations across quadratics, a cubic, a rational function, and a radical function, plus finding a horizontal tangent point.", gen: () => QL.generateTangentNormalExam(8), kind: "mc", isExam: true }
   ];
 
   const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
@@ -2465,6 +2776,255 @@
   }
 
   // ---------------- LEVEL 0: plain multiple choice ----------------
+  // =========================================================================
+  // SVG DIAGRAMS: shape renders (shown WITH the question — generic geometry
+  // only, illustrative marker positions, never the actual optimized value)
+  // and function/tangent graphs (shown only AFTER answering, since the plot
+  // literally draws the answer — a critical point or a tangent/normal line).
+  // =========================================================================
+  const GRAPH_W = 260, GRAPH_H = 150, GRAPH_PAD = 22;
+
+  function samplePoints(fn, xMin, xMax, n) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const x = xMin + (xMax - xMin) * i / n;
+      let y;
+      try { y = fn(x); } catch (e) { y = NaN; }
+      pts.push([x, y]);
+    }
+    return pts.filter(p => Number.isFinite(p[1]));
+  }
+
+  function toPixels(pts, xMin, xMax, yMin, yMax) {
+    const xr = (xMax - xMin) || 1, yr = (yMax - yMin) || 1;
+    return pts.map(([x, y]) => [
+      GRAPH_PAD + (x - xMin) / xr * (GRAPH_W - 2 * GRAPH_PAD),
+      GRAPH_H - GRAPH_PAD - (y - yMin) / yr * (GRAPH_H - 2 * GRAPH_PAD)
+    ]);
+  }
+
+  function pathFrom(pxPts) {
+    return pxPts.map(([x, y], i) => (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1)).join(" ");
+  }
+
+  // f(x) (blue) and f'(x) (orange) plotted together, each independently
+  // y-scaled to fill the box; a dashed guide marks the critical point x*
+  // (where f'=0) with a dot landing on both curves — the visual punchline of
+  // every optimization problem: "the derivative's zero IS the answer."
+  function functionGraphSvg(g) {
+    const N = 48;
+    const fPts = samplePoints(g.fn, g.xMin, g.xMax, N);
+    const dPts = samplePoints(g.dfn, g.xMin, g.xMax, N);
+    if (fPts.length < 2 || dPts.length < 2) return "";
+    const fYs = fPts.map(p => p[1]), dYs = dPts.map(p => p[1]);
+    const fMin = Math.min(...fYs), fMax = Math.max(...fYs);
+    const dMin = Math.min(...dYs), dMax = Math.max(...dYs);
+    const fPx = toPixels(fPts, g.xMin, g.xMax, fMin, fMax);
+    const dPx = toPixels(dPts, g.xMin, g.xMax, dMin, dMax);
+    let zeroLine = "";
+    if (dMin < 0 && dMax > 0) {
+      const zy = GRAPH_H - GRAPH_PAD - (0 - dMin) / (dMax - dMin) * (GRAPH_H - 2 * GRAPH_PAD);
+      zeroLine = `<line x1="${GRAPH_PAD}" y1="${zy.toFixed(1)}" x2="${GRAPH_W - GRAPH_PAD}" y2="${zy.toFixed(1)}" class="fn-zero-line" />`;
+    }
+    const critXpx = GRAPH_PAD + (g.xStar - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const critFy = GRAPH_H - GRAPH_PAD - (g.fn(g.xStar) - fMin) / ((fMax - fMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const critDy = GRAPH_H - GRAPH_PAD - (g.dfn(g.xStar) - dMin) / ((dMax - dMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        ${zeroLine}
+        <line x1="${critXpx.toFixed(1)}" y1="6" x2="${critXpx.toFixed(1)}" y2="${GRAPH_H - 6}" class="fn-crit-line" />
+        <path d="${pathFrom(fPx)}" class="fn-curve-f" />
+        <path d="${pathFrom(dPx)}" class="fn-curve-df" />
+        <circle cx="${critXpx.toFixed(1)}" cy="${critFy.toFixed(1)}" r="3.2" class="fn-dot-f" />
+        <circle cx="${critXpx.toFixed(1)}" cy="${critDy.toFixed(1)}" r="3.2" class="fn-dot-df" />
+        <rect x="0" y="2" width="190" height="28" class="fn-legend-bg" />
+        <text x="6" y="12" class="fn-legend fn-legend-f">— ${escapeHtml(g.fnLabel || "f(x)")}</text>
+        <text x="6" y="26" class="fn-legend fn-legend-df">— ${escapeHtml(g.dfnLabel || "f′(x)")}</text>
+      </svg>`;
+  }
+
+  // The curve plus the actual tangent/normal line through (x0, y0) — for the
+  // Tangent & Normal Lines exam. Y-range is padded to keep the whole line
+  // segment in view even when its slope is steep relative to the curve.
+  function curveLineSvg(g) {
+    const N = 48;
+    const cPts = samplePoints(g.curveFn, g.xMin, g.xMax, N);
+    if (cPts.length < 2) return "";
+    const cYs = cPts.map(p => p[1]);
+    let yMin = Math.min(...cYs), yMax = Math.max(...cYs);
+    g.lines.forEach(line => {
+      const y1 = g.y0 + line.slope * (g.xMin - g.x0);
+      const y2 = g.y0 + line.slope * (g.xMax - g.x0);
+      yMin = Math.min(yMin, y1, y2); yMax = Math.max(yMax, y1, y2);
+    });
+    if (yMax - yMin < 1e-6) { yMax += 1; yMin -= 1; }
+    const cPx = toPixels(cPts, g.xMin, g.xMax, yMin, yMax);
+    const x0px = GRAPH_PAD + (g.x0 - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const y0px = GRAPH_H - GRAPH_PAD - (g.y0 - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const lineSvgs = g.lines.map(line => {
+      const y1 = g.y0 + line.slope * (g.xMin - g.x0);
+      const y2 = g.y0 + line.slope * (g.xMax - g.x0);
+      const pxPts = toPixels([[g.xMin, y1], [g.xMax, y2]], g.xMin, g.xMax, yMin, yMax);
+      const cls = line.type === "normal" ? "fn-line-normal" : "fn-line-tangent";
+      return `<path d="${pathFrom(pxPts)}" class="${cls}" />`;
+    }).join("");
+    const primaryType = g.lines[0].type;
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        <path d="${pathFrom(cPx)}" class="fn-curve-f" />
+        ${lineSvgs}
+        <circle cx="${x0px.toFixed(1)}" cy="${y0px.toFixed(1)}" r="3.4" class="fn-dot-f" />
+        <rect x="0" y="2" width="110" height="28" class="fn-legend-bg" />
+        <text x="6" y="12" class="fn-legend fn-legend-f">— f(x)</text>
+        <text x="6" y="26" class="fn-legend ${primaryType === "normal" ? "fn-legend-normal" : "fn-legend-tangent"}">— ${primaryType === "normal" ? "normal line" : "tangent line"}</text>
+      </svg>`;
+  }
+
+  function graphSvgFor(q) {
+    if (!q.graph) return "";
+    if (q.graph.kind === "fn-deriv") return functionGraphSvg(q.graph);
+    if (q.graph.kind === "curve-line") return curveLineSvg(q.graph);
+    return "";
+  }
+
+  // ---- shape diagrams (Optimization exam): generic setup geometry only ----
+  function shapeSumOfSquares(s) {
+    const W = 240, H = 90, pad = 20, lineY = 50, splitFrac = 0.38;
+    const x1 = pad, x2 = W - pad;
+    const splitX = x1 + (x2 - x1) * splitFrac;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
+        <line x1="${x1}" y1="${lineY}" x2="${x2}" y2="${lineY}" class="diag-line" />
+        <line x1="${x1}" y1="${lineY - 10}" x2="${x1}" y2="${lineY + 10}" class="diag-tick" />
+        <line x1="${x2}" y1="${lineY - 10}" x2="${x2}" y2="${lineY + 10}" class="diag-tick" />
+        <line x1="${splitX}" y1="${lineY - 14}" x2="${splitX}" y2="${lineY + 14}" class="diag-tick diag-tick-accent" />
+        <text x="${(x1 + splitX) / 2}" y="${lineY - 20}" class="diag-label" text-anchor="middle">x</text>
+        <text x="${(splitX + x2) / 2}" y="${lineY - 20}" class="diag-label" text-anchor="middle">S − x</text>
+        <text x="${(x1 + x2) / 2}" y="${lineY + 30}" class="diag-label diag-label-muted" text-anchor="middle">total = ${s.S}</text>
+      </svg>`;
+  }
+
+  function shapeFenceRiver() {
+    const W = 240, H = 130, left = 40, right = 200, top = 30, bottom = 100;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
+        <path d="M${left - 6},${top} q10,-10 20,0 q10,10 20,0 q10,-10 20,0 q10,10 20,0 q10,-10 20,0 q10,10 20,0 q10,-10 14,0" class="diag-river" />
+        <text x="${(left + right) / 2}" y="${top - 8}" class="diag-label diag-label-muted" text-anchor="middle">river (no fence)</text>
+        <line x1="${left}" y1="${top}" x2="${left}" y2="${bottom}" class="diag-line" />
+        <line x1="${right}" y1="${top}" x2="${right}" y2="${bottom}" class="diag-line" />
+        <line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" class="diag-line" />
+        <text x="${left - 14}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">x</text>
+        <text x="${right + 14}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">x</text>
+        <text x="${(left + right) / 2}" y="${bottom + 18}" class="diag-label" text-anchor="middle">y</text>
+      </svg>`;
+  }
+
+  function shapeThreeLotFence() {
+    const W = 240, H = 110, left = 30, right = 210, top = 20, bottom = 90;
+    const w1 = left + (right - left) / 3, w2 = left + 2 * (right - left) / 3;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
+        <rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}" class="diag-rect" />
+        <line x1="${w1}" y1="${top}" x2="${w1}" y2="${bottom}" class="diag-line diag-line-inner" />
+        <line x1="${w2}" y1="${top}" x2="${w2}" y2="${bottom}" class="diag-line diag-line-inner" />
+        <text x="${(left + right) / 2}" y="${top - 6}" class="diag-label" text-anchor="middle">W</text>
+        <text x="${right + 14}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">H</text>
+      </svg>`;
+  }
+
+  function shapeBoxCutting(s) {
+    const W = 240, H = 150, sheetW = 100, sheetH = 70, sx = 15, sy = 24, cut = 14;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
+        <rect x="${sx}" y="${sy}" width="${sheetW}" height="${sheetH}" class="diag-rect" />
+        <rect x="${sx}" y="${sy}" width="${cut}" height="${cut}" class="diag-cut" />
+        <rect x="${sx + sheetW - cut}" y="${sy}" width="${cut}" height="${cut}" class="diag-cut" />
+        <rect x="${sx}" y="${sy + sheetH - cut}" width="${cut}" height="${cut}" class="diag-cut" />
+        <rect x="${sx + sheetW - cut}" y="${sy + sheetH - cut}" width="${cut}" height="${cut}" class="diag-cut" />
+        <text x="${sx + sheetW / 2}" y="${sy - 8}" class="diag-label" text-anchor="middle">${s.L} × ${s.W} sheet</text>
+        <text x="${sx + cut / 2}" y="${sy + cut / 2 + 3}" class="diag-label diag-label-tiny" text-anchor="middle">x</text>
+        <g transform="translate(165,${H / 2 + 6})">
+          <polygon points="0,-20 40,-34 80,-20 40,-6" class="diag-iso-top" />
+          <polygon points="0,-20 0,20 40,34 40,-6" class="diag-iso-side" />
+          <polygon points="40,-6 40,34 80,20 80,-20" class="diag-iso-side-dark" />
+        </g>
+        <text x="205" y="${H - 12}" class="diag-label diag-label-muted" text-anchor="middle">folded box</text>
+      </svg>`;
+  }
+
+  function shapePageMargins(s) {
+    const W = 240, H = 140, left = 60, right = 180, top = 15, bottom = 110, mx = 14, my = 10;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${H}">
+        <rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}" class="diag-rect" />
+        <rect x="${left + mx}" y="${top + my}" width="${right - left - 2 * mx}" height="${bottom - top - 2 * my}" class="diag-rect diag-rect-fill" />
+        <text x="${(left + right) / 2}" y="${(top + bottom) / 2}" class="diag-label" text-anchor="middle">print area</text>
+        <text x="${(left + right) / 2}" y="${bottom + 20}" class="diag-label diag-label-muted" text-anchor="middle">margins: ${s.a}in (sides), ${s.b}in (top/bottom)</text>
+      </svg>`;
+  }
+
+  function shapeInscribedRectangle(s) {
+    const W = 240, Hh = 140, baseY = 118, apexX = 120, apexY = 15, leftX = 25, rightX = 215, frac = 0.4;
+    const rectTopY = apexY + (baseY - apexY) * frac;
+    const rectHalfWidth = (rightX - leftX) / 2 * (1 - frac);
+    const midX = (leftX + rightX) / 2;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${Hh}">
+        <polygon points="${leftX},${baseY} ${rightX},${baseY} ${apexX},${apexY}" class="diag-tri" />
+        <rect x="${(midX - rectHalfWidth).toFixed(1)}" y="${rectTopY.toFixed(1)}" width="${(2 * rectHalfWidth).toFixed(1)}" height="${(baseY - rectTopY).toFixed(1)}" class="diag-rect diag-rect-fill" />
+        <text x="${midX}" y="${baseY + 16}" class="diag-label" text-anchor="middle">base B = ${s.B}</text>
+        <text x="${leftX - 12}" y="${(apexY + baseY) / 2}" class="diag-label diag-label-tiny" text-anchor="middle">H = ${s.H}</text>
+      </svg>`;
+  }
+
+  function shapeConeCylinder(s) {
+    const W = 240, Hh = 150, cx = 120, topY = 25, botY = 118, rx = 70, ry = 16;
+    const apexY = topY - ry;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 ${W} ${Hh}">
+        <ellipse cx="${cx}" cy="${botY}" rx="${rx}" ry="${ry}" class="diag-ellipse-base" />
+        <line x1="${cx - rx}" y1="${topY}" x2="${cx - rx}" y2="${botY}" class="diag-line" />
+        <line x1="${cx + rx}" y1="${topY}" x2="${cx + rx}" y2="${botY}" class="diag-line" />
+        <ellipse cx="${cx}" cy="${topY}" rx="${rx}" ry="${ry}" class="diag-ellipse-top" />
+        <line x1="${cx}" y1="${apexY}" x2="${cx - rx}" y2="${botY}" class="diag-line diag-line-inner" stroke-dasharray="4,3" />
+        <line x1="${cx}" y1="${apexY}" x2="${cx + rx}" y2="${botY}" class="diag-line diag-line-inner" stroke-dasharray="4,3" />
+        <circle cx="${cx}" cy="${apexY}" r="2.2" class="diag-dot" />
+        <text x="${cx}" y="${botY + 24}" class="diag-label diag-label-muted" text-anchor="middle">cone (dashed) inside cylinder — R=${s.R}, H=${s.H}</text>
+      </svg>`;
+  }
+
+  function shapeRowboat(s) {
+    const shoreY = 108, boatX = 40, boatY = 26, destX = 208, landX = 118;
+    return `
+      <svg class="diagram-svg" viewBox="0 0 240 140">
+        <line x1="10" y1="${shoreY}" x2="230" y2="${shoreY}" class="diag-line" />
+        <text x="120" y="${shoreY + 16}" class="diag-label diag-label-muted" text-anchor="middle">shore</text>
+        <circle cx="${boatX}" cy="${boatY}" r="3.5" class="diag-dot" />
+        <text x="${boatX - 8}" y="${boatY - 8}" class="diag-label diag-label-tiny">boat</text>
+        <line x1="${boatX}" y1="${boatY}" x2="${boatX}" y2="${shoreY}" class="diag-line diag-line-inner" stroke-dasharray="3,3" />
+        <text x="${boatX - 16}" y="${(boatY + shoreY) / 2}" class="diag-label diag-label-tiny">d=${s.d}</text>
+        <circle cx="${destX}" cy="${shoreY}" r="3.5" class="diag-dot" />
+        <text x="${destX - 10}" y="${shoreY - 10}" class="diag-label diag-label-tiny">dest</text>
+        <line x1="${boatX}" y1="${boatY}" x2="${landX}" y2="${shoreY}" class="diag-line" />
+        <line x1="${landX}" y1="${shoreY}" x2="${destX}" y2="${shoreY}" class="diag-line" />
+        <text x="${(boatX + destX) / 2}" y="16" class="diag-label diag-label-muted" text-anchor="middle">straight-line dist = ${s.shoreDist}</text>
+      </svg>`;
+  }
+
+  function shapeSvgFor(shape) {
+    switch (shape.type) {
+      case "sumOfSquares": return shapeSumOfSquares(shape);
+      case "fenceRiver": return shapeFenceRiver(shape);
+      case "threeLotFence": return shapeThreeLotFence(shape);
+      case "boxCutting": return shapeBoxCutting(shape);
+      case "pageMargins": return shapePageMargins(shape);
+      case "inscribedRectangle": return shapeInscribedRectangle(shape);
+      case "coneCylinder": return shapeConeCylinder(shape);
+      case "rowboat": return shapeRowboat(shape);
+      default: return "";
+    }
+  }
+
   function renderMcLevel() {
     const q = state.questions[state.index];
     const total = state.questions.length;
@@ -2485,6 +3045,7 @@
       <div class="question-card">
         <div class="qtag">Question ${state.index + 1} of ${total}</div>
         <div class="question-prompt">${escapeHtml(q.fLabel)}</div>
+        ${q.shape ? `<div class="q-diagram">${shapeSvgFor(q.shape)}</div>` : ""}
         <div class="mc-options">${optionsHtml}</div>
         <div class="actions-row">
           ${state.mcAnswered
@@ -2493,6 +3054,7 @@
           <button class="btn-ghost" data-go-home>Exit to Menu</button>
         </div>
         ${state.mcAnswered ? `<div class="feedback-msg ${q.correctIndex === state.mcChosenIndex ? "correct" : "incorrect"}">${q.correctIndex === state.mcChosenIndex ? "✓ Correct!" : "✗ Not quite — the correct answer is highlighted."}</div>` : ""}
+        ${state.mcAnswered && q.graph ? `<div class="q-graph"><div class="q-graph-title">${q.graph.kind === "fn-deriv" ? "f(x) vs f′(x) — the critical point is the answer" : "the curve and the line you just solved for"}</div>${graphSvgFor(q)}</div>` : ""}
       </div>
     `;
 
