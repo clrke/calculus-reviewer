@@ -452,6 +452,18 @@
   .incr-answer { visibility: hidden; opacity: 0; color: #7dffb0; text-shadow: 0 0 10px rgba(125,255,176,0.6); }
   .incr-answer.reveal { visibility: visible; animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
 
+  /* --- optimization: reduce 2 variables to 1 via the constraint, then d/dx=0 --- */
+  .optcrit-stage {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: 10px; padding: 10px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 1.25rem; color: #fff; font-weight: 700;
+  }
+  .optcrit-step { display: inline-block; transition: transform 0.6s ease-in, opacity 0.6s ease-in, color 0.4s; }
+  .optcrit-step.faded { transform: scale(0.6); opacity: 0.3; color: #ff4d5e; }
+  .optcrit-arrow { font-size: 0.62rem; letter-spacing: 0.03em; color: #ff8a94; text-transform: uppercase; }
+  .optcrit-answer { visibility: hidden; opacity: 0; color: #7dffb0; font-size: 1.5rem; text-shadow: 0 0 10px rgba(125,255,176,0.6); }
+  .optcrit-answer.reveal { visibility: visible; animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards; }
+
   /* --- generic reveal (structural / numeric fallback) --- */
   .reveal-stage { padding: 8px 4px 2px; }
   .reveal-answer {
@@ -1764,7 +1776,8 @@
     ]);
     return {
       fLabel: "Two numbers have a sum of " + S + ". Find the two numbers that minimize the sum of their squares.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      optCritShape: true
     };
   }
 
@@ -1779,7 +1792,8 @@
     ]);
     return {
       fLabel: "A farmer has " + P + "m of fencing for a rectangular field along a straight river (no fence needed along the river). Let x be each of the two sides perpendicular to the river, and y the side parallel to it. Find the dimensions of largest area.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      optCritShape: true
     };
   }
 
@@ -1794,7 +1808,8 @@
     ]);
     return {
       fLabel: "A rectangular field is enclosed by a fence and divided into 3 equal lots by 2 fences parallel to one side, using " + P + " ft of fencing total. Find the overall dimensions (total width by height) of the largest field.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      optCritShape: true
     };
   }
 
@@ -1821,7 +1836,8 @@
     const opts = makeOptions({ label: numToStr(x0), val: x0 }, numDistractors(x0, [-1, 1, 2, -2]));
     return {
       fLabel: "A box is made from a " + L + "x" + W + " in cardboard sheet by cutting equal squares from the corners and folding up the sides. Find the side length of the square that maximizes the box's volume.",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      optCritShape: true
     };
   }
 
@@ -1852,7 +1868,8 @@
     );
     return {
       fLabel: "A rectangular page must contain " + k + " sq in of print, with " + a + "in margins on the left/right and " + b + "in margins on the top/bottom. Find the page dimensions that use the least paper.",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      optCritShape: true
     };
   }
 
@@ -1868,7 +1885,8 @@
     ]);
     return {
       fLabel: "A triangle has a base " + B + " ft long and an altitude " + H + " ft high. Find the area of the largest rectangle that can be inscribed with its base on the triangle's base.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      optCritShape: true
     };
   }
 
@@ -1884,7 +1902,8 @@
     ]);
     return {
       fLabel: "Find the height of the cylinder of maximum volume that can be inscribed in a right circular cone of radius " + R + " ft and height " + H + " ft.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      optCritShape: true
     };
   }
 
@@ -1921,7 +1940,8 @@
     return {
       fLabel: "A person in a rowboat " + d + " miles from shore wants to reach a point " + shoreDist + " miles (straight-line) from their position, then continue on foot. Rowing at " + rowSpeed + " mph and walking at " + walkSpeed +
         " mph, find the angle (from the shortest path straight to shore) they should row to minimize total travel time.",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      optCritShape: true
     };
   }
 
@@ -2543,6 +2563,11 @@
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Definition of the Derivative</div>
         ${incrStageHtml(escapeHtml(q.options[q.correctIndex]))}`;
+    } else if (q.optCritShape) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Reduce to One Variable</div>
+        ${optCritStageHtml(escapeHtml(q.options[q.correctIndex]))}`;
     } else {
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
@@ -2563,6 +2588,7 @@
     else if (q.yPrimeShape) loopTimer = attachYPrimeAnimation(overlay);
     else if (q.squeezeShape) loopTimer = attachSqueezeAnimation(overlay);
     else if (q.incrementShape) loopTimer = attachIncrAnimation(overlay);
+    else if (q.optCritShape) loopTimer = attachOptCritAnimation(overlay);
 
     let dismissed = false;
     function dismiss() {
@@ -2858,6 +2884,38 @@
     }
     requestAnimationFrame(playCycle);
     return setInterval(playCycle, 2400);
+  }
+
+  // Optimization: the real mistake this reinforces is skipping the source
+  // material's own guideline #4 ("reduce the primary equation to one having
+  // a single independent variable") — differentiating a two-variable
+  // expression directly instead of substituting the constraint first. The
+  // "2 variables" step visibly fades away as "1 variable" takes over, then
+  // d/dx=0 leads to the answer.
+  function optCritStageHtml(answer) {
+    return `
+      <div class="optcrit-stage">
+        <span class="optcrit-step" id="oc-two">2 variables</span>
+        <span class="optcrit-arrow">use the constraint</span>
+        <span class="optcrit-step">1 variable</span>
+        <span class="optcrit-arrow">→</span>
+        <span class="optcrit-step">d/dx = 0</span>
+        <span class="optcrit-arrow">→</span>
+        <span class="optcrit-answer" id="oc-answer">${answer}</span>
+      </div>`;
+  }
+
+  function attachOptCritAnimation(overlay) {
+    const twoEl = overlay.querySelector("#oc-two");
+    const answerEl = overlay.querySelector("#oc-answer");
+    function playCycle() {
+      twoEl.classList.remove("faded"); answerEl.classList.remove("reveal");
+      void twoEl.offsetWidth;
+      setTimeout(() => { twoEl.classList.add("faded"); }, 350);
+      setTimeout(() => { answerEl.classList.add("reveal"); }, 1300);
+    }
+    requestAnimationFrame(playCycle);
+    return setInterval(playCycle, 2700);
   }
 
   function showMistakePopup(selEl, blank, q) {
