@@ -495,7 +495,7 @@
   }
 
   const SUPER = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴",
-                  "5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻" };
+                  "5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻","n":"ⁿ" };
   function sup(n) { return String(n).split("").map(ch => SUPER[ch] !== undefined ? SUPER[ch] : ch).join(""); }
   const MINUS = "−"; // proper minus sign for display
 
@@ -572,6 +572,31 @@
       .map(o => correctVal + o)
       .filter((v, i, self) => self.indexOf(v) === i)
       .map(v => ({ label: numToStr(v), val: v }));
+  }
+
+  // Abstract (symbolic-in-n) rule options, paired alongside the concrete
+  // plugged-in-numbers blanks so a "f'(x) = ..." question tests BOTH the
+  // general rule the student should recognize AND the specific arithmetic.
+  function abstractPowerRuleOptions() {
+    const correct = "n·x" + sup("n-1");
+    const distractors = shuffle([
+      "n·x" + sup("n"),           // forgot to drop the exponent
+      "(n" + MINUS + "1)·x" + sup("n-2"), // subtracted from both n's
+      "x" + sup("n-1")            // forgot to bring down the coefficient n
+    ]);
+    const opts = shuffle([correct, ...distractors]);
+    return { options: opts, correctIndex: opts.indexOf(correct) };
+  }
+
+  function abstractChainRuleOptions() {
+    const correct = "n·g(x)" + sup("n-1") + "·g′(x)";
+    const distractors = shuffle([
+      "n·g(x)" + sup("n-1"),               // forgot the outer chain-rule factor g'(x)
+      "n·g′(x)" + sup("n-1"),              // raised the wrong piece to the power
+      "g(x)" + sup("n") + "·g′(x)"         // forgot to drop the exponent and bring down n
+    ]);
+    const opts = shuffle([correct, ...distractors]);
+    return { options: opts, correctIndex: opts.indexOf(correct) };
   }
 
   // ---------- numeric derivative (ground truth, for testing only) ----------
@@ -791,16 +816,17 @@
       { label: numToStr(correctExp), val: correctExp },
       numDistractors(correctExp, [1, 2, -1, n + 1 - correctExp])
     );
+    const b0 = abstractPowerRuleOptions();
     return {
       level: 2, type: "blanks",
-      prompt: "f(x) = " + formatMono(a, n),
-      template: ["f′(x) = ", { key: "b1" }, "x", { key: "exp", sup: true, ref: "b2" }],
+      renderPrompt: "f(x) = " + formatMono(a, n),
+      hint: "First recall the general power rule, then plug in this f(x)'s own numbers.",
+      renderTemplate: "General rule: d/dx[xⁿ] = {b0}     f′(x) = {b1} · x{b2:sup}",
       blanks: [
+        { key: "b0", options: b0.options, correctIndex: b0.correctIndex },
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
       ],
-      renderPrompt: "f(x) = " + formatMono(a, n),
-      renderTemplate: "f′(x) = {b1} · x{b2:sup}",
       powerRuleShape: { coefKey: "b1", expKey: "b2", a, n },
       _check: (x) => correctCoef * Math.pow(x, correctExp),
       _f: f
@@ -816,11 +842,14 @@
     const b3 = makeOptions({ label: numToStr(correctConst), val: correctConst }, [
       { label: numToStr(c), val: c }, { label: numToStr(a), val: a }, { label: "1", val: 1 }, { label: numToStr(-c), val: -c }
     ]);
+    const b0 = abstractPowerRuleOptions();
     return {
       level: 2, type: "blanks",
       renderPrompt: "f(x) = " + formatMono(a, n) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c),
-      renderTemplate: "f′(x) = {b1} · x{b2:sup} + {b3}",
+      hint: "First recall the general power rule, then plug in this f(x)'s own numbers (remember: the derivative of a plain constant is 0).",
+      renderTemplate: "General rule: d/dx[xⁿ] = {b0}     f′(x) = {b1} · x{b2:sup} + {b3}",
       blanks: [
+        { key: "b0", options: b0.options, correctIndex: b0.correctIndex },
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex, constValue: c }
@@ -871,11 +900,14 @@
     const b1 = makeOptions({ label: numToStr(correctB1), val: correctB1 }, numDistractors(correctB1, [-1, 1, a, a * n]));
     const b2 = makeOptions({ label: numToStr(correctB2), val: correctB2 }, numDistractors(correctB2, [1, 2, -1]));
     const b3 = makeOptions({ label: numToStr(correctB3), val: correctB3 }, numDistractors(correctB3, [b, -a, n, 1]));
+    const b0 = abstractChainRuleOptions();
     return {
       level: 2, type: "blanks",
-      renderPrompt: "f(x) = (" + formatLinear(a, b) + ")" + sup(n),
-      renderTemplate: "f′(x) = {b1} · (" + formatLinear(a, b) + "){b2:sup} · {b3}",
+      renderPrompt: "f(x) = (" + formatLinear(a, b) + ")" + sup(n) + "   [let g(x) = " + formatLinear(a, b) + "]",
+      hint: "First recall the general chain rule, then plug in this g(x)'s own numbers.",
+      renderTemplate: "General rule: d/dx[g(x)ⁿ] = {b0}     f′(x) = {b1} · (" + formatLinear(a, b) + "){b2:sup} · {b3}",
       blanks: [
+        { key: "b0", options: b0.options, correctIndex: b0.correctIndex },
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
@@ -968,12 +1000,14 @@
     );
     const b2 = makeOptions({ label: numToStr(n), val: n }, numDistractors(n, [-1, 1, 2]));
     const b3 = makeOptions({ label: numToStr(n - 1), val: n - 1 }, numDistractors(n - 1, [1, 2, -1]));
+    const b0 = abstractChainRuleOptions();
     return {
       level: 2, type: "blanks",
       renderPrompt: "f(x) = (x² " + (a < 0 ? MINUS + " " + Math.abs(a) + "x" : "+ " + a + "x") + ")" + sup(n) + "   [let g(x) = x² " + (a < 0 ? MINUS + " " + Math.abs(a) + "x" : "+ " + a + "x") + "]",
       hint: "First differentiate g(x) itself (power rule on x², plus the ax term) — then multiply by the outer chain-rule factor.",
-      renderTemplate: "g′(x) = {b1}     f′(x) = {b2} · g(x){b3:sup} · g′(x)",
+      renderTemplate: "General rule: d/dx[g(x)ⁿ] = {b0}     g′(x) = {b1}     f′(x) = {b2} · g(x){b3:sup} · g′(x)",
       blanks: [
+        { key: "b0", options: b0.options, correctIndex: b0.correctIndex },
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
