@@ -184,6 +184,20 @@
   .match-card.wrong-flash { background: var(--red-bg); border-color: var(--red); }
   @media (max-width: 560px) { .match-grid { grid-template-columns: 1fr; } }
 
+  /* ---- Level 0: plain multiple choice ---- */
+  .mc-option {
+    display: block; width: 100%; text-align: left;
+    background: #f7f9fc; border: 2px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px; font-size: 1.05rem; font-weight: 700;
+    font-family: "Cambria Math", Cambria, Georgia, serif; color: #222;
+    cursor: pointer; transition: all 0.12s ease;
+  }
+  .mc-option:hover:not(:disabled) { border-color: var(--blue-light); }
+  .mc-option:disabled { cursor: default; }
+  .mc-option.correct { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .mc-option.incorrect { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+  .mc-option.dimmed { opacity: 0.5; }
+
   /* ---- Summary screen ---- */
   .summary-card {
     background: white; border: 1px solid var(--border); border-radius: 14px;
@@ -334,6 +348,38 @@
     animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
   }
   .rule-minus.reveal { text-shadow: 0 0 10px rgba(255,180,77,0.8); }
+
+  /* --- constant rule: number gets obliterated, becomes 0 --- */
+  .const-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    padding: 14px 4px 4px; font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 2.2rem; color: #fff; font-weight: 800;
+  }
+  .const-num-wrap { position: relative; display: inline-block; min-width: 1.5em; text-align: center; }
+  .const-num { display: inline-block; }
+  .const-num.detonate { animation: const-detonate 0.35s ease-in forwards; }
+  @keyframes const-detonate {
+    0%   { transform: scale(1); opacity: 1; color: #fff; }
+    35%  { transform: scale(1.5); opacity: 1; color: #ff4d5e; }
+    100% { transform: scale(0.1); opacity: 0; }
+  }
+  .const-frag {
+    position: absolute; top: 50%; left: 50%; width: 7px; height: 7px;
+    background: #ff4d5e; border-radius: 1px; opacity: 0; pointer-events: none;
+  }
+  .const-frag.fly {
+    animation: const-frag-fly 0.55s ease-out forwards; animation-delay: 0.1s;
+  }
+  @keyframes const-frag-fly {
+    0%   { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--fx)), calc(-50% + var(--fy))) scale(0.2) rotate(var(--frot)); }
+  }
+  .const-arrow { font-size: 1.3rem; color: #ff8a94; }
+  .const-zero { visibility: hidden; opacity: 0; color: #7dffb0; }
+  .const-zero.reveal {
+    visibility: visible;
+    animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
 
   /* --- generic reveal (structural / numeric fallback) --- */
   .reveal-stage { padding: 8px 4px 2px; }
@@ -516,7 +562,8 @@
       return {
         f: (x) => c,
         fLabel: "f(x) = " + numToStr(c),
-        dLabel: "f′(x) = 0"
+        dLabel: "f′(x) = 0",
+        constValue: c
       };
     },
     // linear
@@ -605,6 +652,42 @@
   }
 
   // =========================================================================
+  // LEVEL 0 — plain multiple choice (function -> derivative)
+  // =========================================================================
+  function generateLevel0(numQuestions) {
+    numQuestions = numQuestions || 5;
+    const questions = [];
+    for (let i = 0; i < numQuestions; i++) {
+      const item = pick(L1_GENERATORS)();
+      const seen = new Set([item.dLabel]);
+      const distractors = [];
+      let tries = 0;
+      while (distractors.length < 3 && tries < 40) {
+        tries++;
+        const other = pick(L1_GENERATORS)();
+        if (!seen.has(other.dLabel)) {
+          seen.add(other.dLabel);
+          distractors.push(other.dLabel);
+        }
+      }
+      while (distractors.length < 3) {
+        // near-impossible fallback if the pool ran dry of unique labels
+        distractors.push(item.dLabel + "​".repeat(distractors.length + 1));
+      }
+      const options = shuffle([item.dLabel, ...distractors]);
+      questions.push({
+        fLabel: item.fLabel,
+        dLabel: item.dLabel,
+        options,
+        correctIndex: options.indexOf(item.dLabel),
+        isConstant: item.dLabel === "f′(x) = 0",
+        constValue: item.constValue
+      });
+    }
+    return questions;
+  }
+
+  // =========================================================================
   // LEVEL 2 — single-concept fill-in-the-blank (numeric params)
   // =========================================================================
 
@@ -652,7 +735,7 @@
       blanks: [
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
-        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex, constValue: c }
       ],
       powerRuleShape: { coefKey: "b1", expKey: "b2", a, n },
       _check: (x) => correctCoef * Math.pow(x, correctExp) + correctConst,
@@ -1073,7 +1156,7 @@
   const QuizLogic = {
     rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
     makeOptions, numDistractors, numericDerivative,
-    generateLevel1, generateLevel2, generateLevel3, generateLevel4,
+    generateLevel0, generateLevel1, generateLevel2, generateLevel3, generateLevel4,
     L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
   };
 
@@ -1093,6 +1176,7 @@
   const app = document.getElementById("app");
 
   const LEVELS = [
+    { num: 0, title: "Multiple Choice", desc: "Pick the correct derivative for each function out of 4 choices. The basics, one question at a time.", gen: () => QL.generateLevel0(6), kind: "mc" },
     { num: 1, title: "Mix & Match", desc: "Match each function to its correct derivative. Click a function, then click its matching derivative.", gen: () => QL.generateLevel1(6), kind: "match" },
     { num: 2, title: "Fill-in-the-Blank (Single Rule)", desc: "Each numeric part of the derivative — coefficients, exponents, symbols — is a dropdown blank. One rule at a time.", gen: () => QL.generateLevel2(5), kind: "blanks" },
     { num: 3, title: "Combined (Up to 2 Layers)", desc: "Questions combine two rules — e.g. product rule with power rule, or chain rule wrapping a polynomial.", gen: () => QL.generateLevel3(5), kind: "blanks" },
@@ -1125,7 +1209,7 @@
       <header class="site-header">
         <div class="badge">Randomized Every Attempt</div>
         <h1>Derivatives Practice Quiz</h1>
-        <p>4 levels, from single-rule recall to 3-layer combined derivatives</p>
+        <p>5 levels, from plain multiple choice to 3-layer combined derivatives</p>
       </header>
       <div class="level-grid">${cardsHtml}</div>
       <footer class="site-footer">Standalone quiz &middot; works fully offline &middot; refresh or retry for a brand-new random set every time &middot; <a href="./Calculus-Midterm-Reviewer-Corrected.pdf" target="_blank" rel="noopener" style="color:inherit;">Download the full reviewer PDF</a></footer>
@@ -1155,7 +1239,10 @@
       // blanks state:
       checked: false,
       questionCorrect: null,
-      selectedAnswers: {} // blankIdx -> chosen option index, for the CURRENT question
+      selectedAnswers: {}, // blankIdx -> chosen option index, for the CURRENT question
+      // level-0 multiple-choice state:
+      mcAnswered: false,
+      mcChosenIndex: null
     };
     render();
   }
@@ -1163,6 +1250,7 @@
   function renderQuiz() {
     const lv = state.level;
     if (lv.kind === "match") { renderMatchLevel(); return; }
+    if (lv.kind === "mc") { renderMcLevel(); return; }
     renderBlanksLevel();
   }
 
@@ -1244,6 +1332,115 @@
         }
       });
     });
+  }
+
+  // ---------------- LEVEL 0: plain multiple choice ----------------
+  function renderMcLevel() {
+    const q = state.questions[state.index];
+    const total = state.questions.length;
+    const topbar = renderTopbar(state.index, total, `Question ${state.index + 1}/${total} &nbsp;|&nbsp; Score: ${state.correctCount}/${state.index}`);
+
+    const optionsHtml = q.options.map((opt, i) => {
+      let cls = "";
+      if (state.mcAnswered) {
+        if (i === q.correctIndex) cls = "correct";
+        else if (i === state.mcChosenIndex) cls = "incorrect";
+        else cls = "dimmed";
+      }
+      return `<button class="mc-option ${cls}" data-opt-idx="${i}" ${state.mcAnswered ? "disabled" : ""}>${escapeHtml(opt)}</button>`;
+    }).join("");
+
+    app.innerHTML = `
+      ${topbar}
+      <div class="question-card">
+        <div class="qtag">Question ${state.index + 1} of ${total}</div>
+        <div class="question-prompt">${escapeHtml(q.fLabel)}</div>
+        <div class="mc-options">${optionsHtml}</div>
+        <div class="actions-row">
+          ${state.mcAnswered
+            ? `<button class="btn-primary" data-next>${state.index + 1 < total ? "Next Question →" : "See Results"}</button>`
+            : ""}
+          <button class="btn-ghost" data-go-home>Exit to Menu</button>
+        </div>
+        ${state.mcAnswered ? `<div class="feedback-msg ${q.correctIndex === state.mcChosenIndex ? "correct" : "incorrect"}">${q.correctIndex === state.mcChosenIndex ? "✓ Correct!" : "✗ Not quite — the correct derivative is highlighted."}</div>` : ""}
+      </div>
+    `;
+
+    app.querySelector("[data-go-home]").addEventListener("click", goHome);
+
+    if (state.mcAnswered) {
+      app.querySelector("[data-next]").addEventListener("click", () => {
+        state.index++;
+        state.mcAnswered = false;
+        state.mcChosenIndex = null;
+        if (state.index >= total) { goSummary(); return; }
+        render();
+      });
+    } else {
+      app.querySelectorAll("[data-opt-idx]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const chosen = parseInt(btn.dataset.optIdx, 10);
+          state.mcChosenIndex = chosen;
+          state.mcAnswered = true;
+          const isCorrect = chosen === q.correctIndex;
+          if (isCorrect) {
+            state.correctCount++;
+          } else {
+            showMcMistakePopup(q);
+          }
+          render();
+        });
+      });
+    }
+  }
+
+  function showMcMistakePopup(q) {
+    if (mistakePopupActive) return;
+    mistakePopupActive = true;
+
+    const flash = document.createElement("div");
+    flash.className = "hit-flash";
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 550);
+    app.classList.add("shake");
+    setTimeout(() => app.classList.remove("shake"), 400);
+
+    const bannerWord = MISS_WORDS[Math.floor(Math.random() * MISS_WORDS.length)];
+    let innerHtml, loopTimer = null;
+
+    if (q.isConstant) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Constant Rule</div>
+        ${constStageHtml(q.constValue)}`;
+    } else {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="reveal-stage"><div class="reveal-answer">${escapeHtml(q.dLabel)}</div></div>`;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "mistake-overlay";
+    overlay.innerHTML = `
+      <div class="mistake-card">
+        ${innerHtml}
+        <div class="mistake-hint">tap to continue</div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    if (q.isConstant) loopTimer = attachConstAnimation(overlay);
+
+    let dismissed = false;
+    function dismiss() {
+      if (dismissed) return;
+      dismissed = true;
+      if (loopTimer) clearInterval(loopTimer);
+      overlay.style.transition = "opacity 0.12s ease-in";
+      overlay.style.opacity = "0";
+      setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
+    }
+    overlay.addEventListener("click", dismiss);
+    setTimeout(dismiss, q.isConstant ? 4200 : 2200);
   }
 
   function shuffleIdx(n) {
@@ -1371,6 +1568,51 @@
     return (a < 0 ? QL.MINUS : "") + (abs === 1 ? "" : String(abs));
   }
 
+  // Shared "constant gets obliterated, becomes 0" diagram — used by both the
+  // fill-in-the-blank constant-term mistake and Level 0's multiple choice.
+  function constStageHtml(cVal) {
+    const cDisplay = (cVal < 0 ? QL.MINUS : "+") + Math.abs(cVal);
+    return `
+      <div class="const-stage">
+        <div class="const-num-wrap"><span class="const-num" id="cd-num">${cDisplay}</span></div>
+        <div class="const-arrow">↓</div>
+        <span class="const-zero" id="cd-zero">0</span>
+      </div>`;
+  }
+
+  function attachConstAnimation(overlay) {
+    const numEl = overlay.querySelector("#cd-num");
+    const zeroEl = overlay.querySelector("#cd-zero");
+    const wrap = overlay.querySelector(".const-num-wrap");
+
+    function playConstCycle() {
+      wrap.querySelectorAll(".const-frag").forEach(f => f.remove());
+      numEl.classList.remove("detonate"); void numEl.offsetWidth;
+      zeroEl.classList.remove("reveal");
+
+      setTimeout(() => {
+        numEl.classList.add("detonate");
+        const fragCount = 8;
+        for (let i = 0; i < fragCount; i++) {
+          const frag = document.createElement("span");
+          frag.className = "const-frag";
+          const angle = (Math.PI * 2 * i) / fragCount + (Math.random() * 0.4 - 0.2);
+          const dist = 38 + Math.random() * 22;
+          frag.style.setProperty("--fx", (Math.cos(angle) * dist) + "px");
+          frag.style.setProperty("--fy", (Math.sin(angle) * dist) + "px");
+          frag.style.setProperty("--frot", (Math.random() * 360 - 180) + "deg");
+          wrap.appendChild(frag);
+          requestAnimationFrame(() => frag.classList.add("fly"));
+        }
+      }, 200);
+
+      setTimeout(() => { zeroEl.classList.add("reveal"); }, 900);
+    }
+
+    requestAnimationFrame(playConstCycle);
+    return setInterval(playConstCycle, 2000);
+  }
+
   function showMistakePopup(selEl, blank, q) {
     if (mistakePopupActive) return; // don't stack popups if changes fire in quick succession
     mistakePopupActive = true;
@@ -1399,6 +1641,7 @@
     const showsFlyDiagram = isPowerShapeMistake || isExpDiagram;
     const isFixedExpMistake = isExponentBlank && blank.fixedExp;
     const showsRuleDiagram = !isPowerShapeMistake && !isFixedExpMistake && q && q.ruleShape && (q.ruleShape.kind === "product" || q.ruleShape.kind === "quotient");
+    const showsConstDiagram = blank.constValue !== undefined;
 
     let reduced = 0, original = 0;
     let innerHtml;
@@ -1446,6 +1689,11 @@
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Always v²</div>
         <div class="reveal-stage"><div class="reveal-answer">${escapeHtml(correctText)}</div></div>`;
+    } else if (showsConstDiagram) {
+      innerHtml = `
+        <div class="mistake-banner">${bannerWord}</div>
+        <div class="mistake-tag">Constant Rule</div>
+        ${constStageHtml(blank.constValue)}`;
     } else if (showsRuleDiagram && q.ruleShape.kind === "product") {
       const { u, v, uPrime, vPrime } = q.ruleShape;
       innerHtml = `
@@ -1586,6 +1834,8 @@
       const cycleLength = isQuotient ? 2600 : 2200;
       requestAnimationFrame(playRuleCycle);
       loopTimer = setInterval(playRuleCycle, cycleLength);
+    } else if (showsConstDiagram) {
+      loopTimer = attachConstAnimation(overlay);
     }
 
     let dismissed = false;
@@ -1599,7 +1849,7 @@
       setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
     }
     overlay.addEventListener("click", dismiss);
-    const autoTimer = setTimeout(dismiss, showsFlyDiagram ? 4600 : (showsRuleDiagram ? 5200 : 3000));
+    const autoTimer = setTimeout(dismiss, showsFlyDiagram ? 4600 : (showsRuleDiagram ? 5200 : (showsConstDiagram ? 4200 : 3000)));
   }
 
   function goHome() { state = { screen: "home" }; render(); }
