@@ -1892,12 +1892,113 @@
     return pool.slice(0, numQuestions).map(gen => gen());
   }
 
+  // =========================================================================
+  // IMPLICIT DIFFERENTIATION MOCK EXAM.
+  // Four of these five are "conceptual, fixed-shape" questions (same pattern
+  // as q_L2_productPattern/quotientPattern): the randomized constant C is
+  // COSMETIC ONLY — differentiating a constant always gives 0, so C never
+  // appears in the actual dy/dx formula, meaning the correct answer string is
+  // fixed while C just varies the displayed equation for freshness. This
+  // sidesteps needing a general two-variable (x,y) expression formatter or
+  // per-attempt implicit-curve branch-tracking, which is what makes fully
+  // randomized implicit-diff generation hard (see investigation notes: no
+  // formatMono/formatLinear-equivalent exists for two-variable expressions,
+  // and numericDerivative() assumes an explicit single-argument function).
+  // Only the 5th question (point-slope) is fully randomized — it reduces to
+  // a plain number, same pattern as the Tangent/Normal Line topic.
+  // =========================================================================
+
+  function q_impl_simpleProduct() {
+    const C = rnd(2, 30);
+    const correct = MINUS + "y/x";
+    const options = shuffle([correct, "y/x", MINUS + "x/y", "x/y"]);
+    return {
+      fLabel: "xy = " + C + ". Find dy/dx by implicit differentiation.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_impl_circleFirst() {
+    const C = rnd(5, 50);
+    const correct = MINUS + "x/y";
+    const options = shuffle([correct, "x/y", MINUS + "y/x", "y/x"]);
+    return {
+      fLabel: "x² + y² = " + C + ". Find dy/dx by implicit differentiation.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_impl_circleSecond() {
+    const C = rnd(5, 50);
+    const correct = MINUS + "(x" + sup(2) + " + y" + sup(2) + ")/y" + sup(3);
+    const options = shuffle([
+      correct,
+      MINUS + "(x" + sup(2) + " + y" + sup(2) + ")/y" + sup(2),
+      "(x" + sup(2) + " + y" + sup(2) + ")/y" + sup(3),
+      MINUS + "x" + sup(2) + "/y" + sup(3)
+    ]);
+    return {
+      fLabel: "x² + y² = " + C + ". Given y′ = " + MINUS + "x/y, find y″ by implicit differentiation.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_impl_cubicMixed() {
+    const C = rnd(2, 30);
+    const correct = "(y " + MINUS + " 3x²)/(2y " + MINUS + " x)";
+    const options = shuffle([
+      correct,
+      "(y + 3x²)/(2y " + MINUS + " x)",
+      "(3x² " + MINUS + " y)/(2y " + MINUS + " x)",
+      "(y " + MINUS + " 3x²)/(x " + MINUS + " 2y)"
+    ]);
+    return {
+      fLabel: "x³ " + MINUS + " xy + y² = " + C + ". Find dy/dx by implicit differentiation.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_impl_pointSlope() {
+    let x0, y0, denom;
+    do {
+      x0 = rnd(-5, 5);
+      y0 = rnd(-5, 5);
+      denom = 2 * y0 - x0;
+    } while (denom === 0 || (x0 === 0 && y0 === 0));
+    const C = x0 * x0 - x0 * y0 + y0 * y0;
+    const correct = fmtFraction(y0 - 2 * x0, denom);
+    const candidateLabels = [
+      fmtFraction(y0 + 2 * x0, denom),
+      fmtFraction(y0 - 2 * x0, 2 * y0 + x0 || 1),
+      fmtFraction(x0 - 2 * y0, 2 * x0 - y0 || 1),
+      fmtFraction(2 * x0 - y0, denom)
+    ];
+    const opts = makeOptions(
+      { label: correct, val: correct },
+      candidateLabels.map(label => ({ label, val: label }))
+    );
+    return {
+      fLabel: "At the point (" + numToStr(x0) + ", " + numToStr(y0) + ") on the curve x² " + MINUS + " xy + y² = " + C + ", find the slope of the tangent line.",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  const IMPLICIT_EXAM_GENERATORS = [
+    q_impl_simpleProduct, q_impl_circleFirst, q_impl_circleSecond, q_impl_cubicMixed, q_impl_pointSlope
+  ];
+
+  function generateImplicitExam(numQuestions) {
+    numQuestions = numQuestions || IMPLICIT_EXAM_GENERATORS.length;
+    const pool = shuffle(IMPLICIT_EXAM_GENERATORS.slice());
+    return pool.slice(0, numQuestions).map(gen => gen());
+  }
+
   // ---------- exports ----------
   const QuizLogic = {
     rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
     makeOptions, numDistractors, numericDerivative,
     generateLevel0, generateLevel1, generateLevel2, generateLevel3, generateLevel4,
-    generateLimitsExam, generateOptimizationExam,
+    generateLimitsExam, generateOptimizationExam, generateImplicitExam,
     L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
   };
 
@@ -1930,7 +2031,8 @@
   // and the num+1 "next level" lookup both just work unmodified.
   const EXAMS = [
     { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true },
-    { num: 101, title: "Optimization Mock Exam", desc: "7 classic maxima/minima applications: minimizing sums, fencing/area problems, box-cutting, page margins, inscribed shapes, and the rowboat direction problem.", gen: () => QL.generateOptimizationExam(7), kind: "mc", isExam: true }
+    { num: 101, title: "Optimization Mock Exam", desc: "7 classic maxima/minima applications: minimizing sums, fencing/area problems, box-cutting, page margins, inscribed shapes, and the rowboat direction problem.", gen: () => QL.generateOptimizationExam(7), kind: "mc", isExam: true },
+    { num: 102, title: "Implicit Differentiation Mock Exam", desc: "5 questions on finding dy/dx (and y″) for equations that mix x and y, plus evaluating the tangent slope at a specific point on an implicit curve.", gen: () => QL.generateImplicitExam(5), kind: "mc", isExam: true }
   ];
 
   const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
