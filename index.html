@@ -1660,9 +1660,12 @@
 
   // ---- squeeze theorem ----
   function q_lim_squeezeClassic() {
+    const n = rnd(2, 4);
+    const trigFn = pick(["sin", "cos"]);
+    const xn = "x" + sup(n);
     const options = shuffle(["0", "1", "DNE (oscillates)", "∞"]);
     return {
-      fLabel: "lim(x→0) x² · sin(1/x) = ?   [hint: " + MINUS + "x² ≤ x²sin(1/x) ≤ x²]",
+      fLabel: "lim(x→0) " + xn + " · " + trigFn + "(1/x) = ?   [hint: " + MINUS + xn + " ≤ " + xn + trigFn + "(1/x) ≤ " + xn + "]",
       options, correctIndex: options.indexOf("0")
     };
   }
@@ -1763,14 +1766,14 @@
   // clean L is found in range.
   function q_opt_boxCutting() {
     let x0, L, W, found = false;
-    for (let tries = 0; tries < 50 && !found; tries++) {
-      x0 = rnd(2, 6);
-      for (let Lc = 4 * x0 + 1; Lc <= 4 * x0 + 40 && !found; Lc++) {
+    for (let tries = 0; tries < 80 && !found; tries++) {
+      x0 = rnd(2, 9);
+      for (let Lc = 4 * x0 + 1; Lc <= 4 * x0 + 60 && !found; Lc++) {
         const denom = Lc - 4 * x0;
         const numer = 4 * x0 * (Lc - 3 * x0);
         if (denom <= 0 || numer % denom !== 0) continue;
         const Wc = numer / denom;
-        if (Wc > 2 * x0 && Wc <= 60 && Wc !== Lc) { L = Lc; W = Wc; found = true; }
+        if (Wc > 2 * x0 && Wc <= 100 && Wc !== Lc) { L = Lc; W = Wc; found = true; }
       }
     }
     if (!found) { x0 = 2.35; L = 18; W = 12; } // deck's own rounded example, as a safety net only
@@ -1918,42 +1921,89 @@
     };
   }
 
-  function q_impl_circleFirst() {
-    const C = rnd(5, 50);
-    const correct = MINUS + "x/y";
-    const options = shuffle([correct, "x/y", MINUS + "y/x", "y/x"]);
+  // "x^n OP y^n = C" family, n and OP (+/-) both randomized: differentiating
+  // gives n*x^(n-1) OP n*y^(n-1)*y' = 0, so y' = -+x^(n-1)/y^(n-1) depending
+  // on the sign of OP. Generalizes the old fixed "x^2+y^2=C" circle case to
+  // an actually-varying answer string (was 100% identical every attempt).
+  function powBase(base, exp) { return exp === 1 ? base : base + sup(exp); }
+
+  function q_impl_powerSumFirst() {
+    const n = rnd(2, 5);
+    const plus = pick([true, false]);
+    const C = rnd(5, 60);
+    const eqStr = "x" + sup(n) + (plus ? " + " : " " + MINUS + " ") + "y" + sup(n) + " = " + C;
+    const xPart = powBase("x", n - 1), yPart = powBase("y", n - 1);
+    const correct = plus ? (MINUS + xPart + "/" + yPart) : (xPart + "/" + yPart);
+    const options = shuffle([
+      correct,
+      plus ? (xPart + "/" + yPart) : (MINUS + xPart + "/" + yPart),
+      MINUS + yPart + "/" + xPart,
+      yPart + "/" + xPart
+    ]);
     return {
-      fLabel: "x² + y² = " + C + ". Find dy/dx by implicit differentiation.",
+      fLabel: eqStr + ". Find dy/dx by implicit differentiation.",
       options, correctIndex: options.indexOf(correct)
     };
   }
 
-  function q_impl_circleSecond() {
-    const C = rnd(5, 50);
-    const correct = MINUS + "(x" + sup(2) + " + y" + sup(2) + ")/y" + sup(3);
+  function q_impl_powerSumSecond() {
+    const plus = pick([true, false]);
+    const C = rnd(5, 60);
+    const eqStr = plus ? ("x² + y² = " + C) : ("x² " + MINUS + " y² = " + C);
+    const yPrime = plus ? (MINUS + "x/y") : "x/y";
+    const correct = plus ? (MINUS + "(x² + y²)/y³") : "(y² " + MINUS + " x²)/y³";
     const options = shuffle([
       correct,
-      MINUS + "(x" + sup(2) + " + y" + sup(2) + ")/y" + sup(2),
-      "(x" + sup(2) + " + y" + sup(2) + ")/y" + sup(3),
-      MINUS + "x" + sup(2) + "/y" + sup(3)
+      plus ? "(x² + y²)/y³" : MINUS + "(y² " + MINUS + " x²)/y³",
+      plus ? (MINUS + "(x² + y²)/y²") : "(y² " + MINUS + " x²)/y²",
+      plus ? (MINUS + "x²/y³") : "y²/x³"
     ]);
     return {
-      fLabel: "x² + y² = " + C + ". Given y′ = " + MINUS + "x/y, find y″ by implicit differentiation.",
+      fLabel: eqStr + ". Given y′ = " + yPrime + ", find y″ by implicit differentiation.",
       options, correctIndex: options.indexOf(correct)
     };
+  }
+
+  // x^2*y = C or x*y^2 = C, chosen randomly each attempt — two more small
+  // fixed-structure shapes that add pool variety without needing a general
+  // two-variable formatter (each shape's own answer is still a short,
+  // hand-verifiable closed form).
+  function q_impl_powerProduct() {
+    const C = rnd(5, 60);
+    if (pick([true, false])) {
+      const correct = MINUS + "2y/x";
+      const options = shuffle([correct, "2y/x", MINUS + "y/(2x)", "y/(2x)"]);
+      return { fLabel: "x²y = " + C + ". Find dy/dx by implicit differentiation.", options, correctIndex: options.indexOf(correct) };
+    } else {
+      const correct = MINUS + "y/(2x)";
+      const options = shuffle([correct, "y/(2x)", MINUS + "2y/x", "2y/x"]);
+      return { fLabel: "xy² = " + C + ". Find dy/dx by implicit differentiation.", options, correctIndex: options.indexOf(correct) };
+    }
+  }
+
+  // ax^3 - bxy + cy^2 = C, with a/b/c randomized (unlike the old fixed
+  // "x^3-xy+y^2=C" version): 3ax^2 - b(y+xy') + 2cy*y' = 0
+  // -> y' = (by - 3ax^2)/(2cy - bx)
+  function coefStr(v) {
+    const av = Math.abs(v);
+    return (v < 0 ? MINUS : "") + (av === 1 ? "" : av);
   }
 
   function q_impl_cubicMixed() {
-    const C = rnd(2, 30);
-    const correct = "(y " + MINUS + " 3x²)/(2y " + MINUS + " x)";
+    const a = rnd(1, 4), b = rnd(1, 4), c = rnd(1, 4);
+    const C = rnd(2, 40);
+    const num = coefStr(b) + "y " + MINUS + " " + coefStr(3 * a) + "x²";
+    const den = coefStr(2 * c) + "y " + MINUS + " " + coefStr(b) + "x";
+    const correct = "(" + num + ")/(" + den + ")";
     const options = shuffle([
       correct,
-      "(y + 3x²)/(2y " + MINUS + " x)",
-      "(3x² " + MINUS + " y)/(2y " + MINUS + " x)",
-      "(y " + MINUS + " 3x²)/(x " + MINUS + " 2y)"
+      "(" + coefStr(b) + "y + " + coefStr(3 * a) + "x²)/(" + den + ")",
+      "(" + coefStr(3 * a) + "x² " + MINUS + " " + coefStr(b) + "y)/(" + den + ")",
+      "(" + num + ")/(" + coefStr(2 * c) + "y + " + coefStr(b) + "x)"
     ]);
+    const eqPrefix = coefStr(a) === "" ? "" : coefStr(a);
     return {
-      fLabel: "x³ " + MINUS + " xy + y² = " + C + ". Find dy/dx by implicit differentiation.",
+      fLabel: eqPrefix + "x³ " + MINUS + " " + coefStr(b) + "xy + " + coefStr(c) + "y² = " + C + ". Find dy/dx by implicit differentiation.",
       options, correctIndex: options.indexOf(correct)
     };
   }
@@ -1984,7 +2034,8 @@
   }
 
   const IMPLICIT_EXAM_GENERATORS = [
-    q_impl_simpleProduct, q_impl_circleFirst, q_impl_circleSecond, q_impl_cubicMixed, q_impl_pointSlope
+    q_impl_simpleProduct, q_impl_powerSumFirst, q_impl_powerSumSecond, q_impl_powerProduct,
+    q_impl_cubicMixed, q_impl_pointSlope
   ];
 
   function generateImplicitExam(numQuestions) {
@@ -2002,6 +2053,31 @@
   // are fixed-shape (same pattern as the product/quotient-rule conceptual
   // questions) since sin(x)/cos(x) have no parameter to randomize.
   // =========================================================================
+
+  // Quadratic by increment method: y'=2ax+b reuses formatLinear directly
+  // (its output shape IS exactly a linear expression), adding a genuinely
+  // varying single-variable-answer question alongside the fixed-shape trig
+  // ones for more per-attempt variety.
+  function q_def_quadratic() {
+    const a = rnd(2, 9) * pick([1, -1]);
+    const b = rnd(-9, 9);
+    const c = rnd(-9, 9);
+    const correct = formatLinear(2 * a, b);
+    const candidateLabels = [
+      formatLinear(a, b),
+      formatLinear(2 * a, 0),
+      formatLinear(2 * a, 2 * b),
+      formatLinear(-2 * a, b)
+    ];
+    const opts = makeOptions(
+      { label: correct, val: correct },
+      candidateLabels.map(label => ({ label, val: label }))
+    );
+    return {
+      fLabel: "y = " + formatQuadratic(a, b, c) + ". Find y′ using the definition of the derivative (increment method).",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
 
   function q_def_linear() {
     const a = rnd(2, 9) * pick([1, -1]);
@@ -2100,7 +2176,7 @@
   }
 
   const DEFINITION_EXAM_GENERATORS = [
-    q_def_linear, q_def_rationalGeneral, q_def_radicalGeneral, q_def_sin, q_def_cos,
+    q_def_linear, q_def_quadratic, q_def_rationalGeneral, q_def_radicalGeneral, q_def_sin, q_def_cos,
     q_def_rationalPointSlope, q_def_cubicPointSlope
   ];
 
@@ -2149,8 +2225,8 @@
   const EXAMS = [
     { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true },
     { num: 101, title: "Optimization Mock Exam", desc: "7 classic maxima/minima applications: minimizing sums, fencing/area problems, box-cutting, page margins, inscribed shapes, and the rowboat direction problem.", gen: () => QL.generateOptimizationExam(7), kind: "mc", isExam: true },
-    { num: 102, title: "Implicit Differentiation Mock Exam", desc: "5 questions on finding dy/dx (and y″) for equations that mix x and y, plus evaluating the tangent slope at a specific point on an implicit curve.", gen: () => QL.generateImplicitExam(5), kind: "mc", isExam: true },
-    { num: 103, title: "Derivative by Definition Mock Exam", desc: "7 questions using the increment (four-step) method: linear, rational, radical, and trig functions, plus evaluating the slope at a specific point.", gen: () => QL.generateDefinitionExam(7), kind: "mc", isExam: true }
+    { num: 102, title: "Implicit Differentiation Mock Exam", desc: "6 questions on finding dy/dx (and y″) for equations that mix x and y, plus evaluating the tangent slope at a specific point on an implicit curve.", gen: () => QL.generateImplicitExam(6), kind: "mc", isExam: true },
+    { num: 103, title: "Derivative by Definition Mock Exam", desc: "8 questions using the increment (four-step) method: linear, quadratic, rational, radical, and trig functions, plus evaluating the slope at a specific point.", gen: () => QL.generateDefinitionExam(8), kind: "mc", isExam: true }
   ];
 
   const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
