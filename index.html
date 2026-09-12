@@ -672,7 +672,7 @@
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
       ],
-      ruleShape: "product"
+      ruleShape: { kind: "product", u: "u", v: "v", uPrime: "u′", vPrime: "v′" }
     };
   }
 
@@ -689,7 +689,7 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex, fixedExp: true }
       ],
-      ruleShape: "quotient"
+      ruleShape: { kind: "quotient", u: "u", v: "v", uPrime: "u′", vPrime: "v′" }
     };
   }
 
@@ -761,7 +761,11 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
-      ruleShape: "product",
+      ruleShape: {
+        kind: "product",
+        u: formatMono(1, p), v: "(" + formatMono(1, q) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c) + ")",
+        uPrime: formatMono(uPrimeCoef, uPrimeExp), vPrime: formatMono(vPrimeCoef, vPrimeExp)
+      },
       _check: (x) => (uPrimeCoef * Math.pow(x, uPrimeExp)) * v(x) + u(x) * (vPrimeCoef * Math.pow(x, vPrimeExp)),
       _f: f
     };
@@ -792,7 +796,11 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
-      ruleShape: "quotient",
+      ruleShape: {
+        kind: "quotient",
+        u: formatMono(1, p), v: "(" + formatMono(1, q) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c) + ")",
+        uPrime: formatMono(uPrimeCoef, uPrimeExp), vPrime: formatMono(vPrimeCoef, vPrimeExp)
+      },
       _check: (x) => ((uPrimeCoef * Math.pow(x, uPrimeExp)) * v(x) - u(x) * (vPrimeCoef * Math.pow(x, vPrimeExp))) / Math.pow(v(x), 2),
       _f: f
     };
@@ -868,7 +876,11 @@
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex },
         { key: "b4", options: b4.options, correctIndex: b4.correctIndex }
       ],
-      ruleShape: "quotient",
+      ruleShape: {
+        kind: "quotient",
+        u: "(" + formatLinear(a, b) + ")" + sup(n), v: "x",
+        uPrime: correctB1 + "·(" + formatLinear(a, b) + ")" + sup(correctB2), vPrime: "1"
+      },
       _check: (x) => ((correctB1 * Math.pow(a * x + b, correctB2)) * v(x) - u(x) * correctB3) / Math.pow(v(x), 2),
       _f: f
     };
@@ -910,7 +922,11 @@
         { key: "b4", options: b4.options, correctIndex: b4.correctIndex },
         { key: "b5", options: b5.options, correctIndex: b5.correctIndex }
       ],
-      ruleShape: "product",
+      ruleShape: {
+        kind: "product",
+        u: "(" + formatLinear(a, b) + ")" + sup(m), v: formatMono(1, p),
+        uPrime: b1cVal + "·(" + formatLinear(a, b) + ")" + sup(b2cVal), vPrime: formatMono(b3cVal, b4cVal)
+      },
       _check: (x) => (b1cVal * Math.pow(a * x + b, b2cVal)) * v(x) + u(x) * (b3cVal * Math.pow(x, b4cVal)),
       _f: f
     };
@@ -970,7 +986,11 @@
         { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
         { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
       ],
-      ruleShape: "quotient",
+      ruleShape: {
+        kind: "quotient",
+        u: "x(" + formatLinear(a, b) + ")", v: "(" + formatLinear(1, c) + ")",
+        uPrime: formatLinear(upCoef, upConst), vPrime: "1"
+      },
       _check: (x) => ((upCoef * x + upConst) * v(x) - u(x) * 1) / Math.pow(v(x), 2),
       _f: f
     };
@@ -1029,7 +1049,11 @@
         { key: "b4", options: b4.options, correctIndex: b4.correctIndex },
         { key: "b5", options: b5.options, correctIndex: b5.correctIndex }
       ],
-      ruleShape: "product",
+      ruleShape: {
+        kind: "product",
+        u: xA + sup(m), v: xB + sup(n),
+        uPrime: m + "·" + xA + sup(m - 1), vPrime: n + "·" + xB + sup(n - 1)
+      },
       _check: (x) => (m * Math.pow(x + a, m - 1)) * v(x) + u(x) * (n * Math.pow(x + b, n - 1)),
       _f: f
     };
@@ -1374,7 +1398,7 @@
     const isExpDiagram = !isPowerShapeMistake && isExponentBlank && !blank.fixedExp && isNumeric;
     const showsFlyDiagram = isPowerShapeMistake || isExpDiagram;
     const isFixedExpMistake = isExponentBlank && blank.fixedExp;
-    const showsRuleDiagram = !isPowerShapeMistake && !isFixedExpMistake && q && (q.ruleShape === "product" || q.ruleShape === "quotient");
+    const showsRuleDiagram = !isPowerShapeMistake && !isFixedExpMistake && q && q.ruleShape && (q.ruleShape.kind === "product" || q.ruleShape.kind === "quotient");
 
     let reduced = 0, original = 0;
     let innerHtml;
@@ -1422,38 +1446,40 @@
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Always v²</div>
         <div class="reveal-stage"><div class="reveal-answer">${escapeHtml(correctText)}</div></div>`;
-    } else if (q && q.ruleShape === "product") {
+    } else if (showsRuleDiagram && q.ruleShape.kind === "product") {
+      const { u, v, uPrime, vPrime } = q.ruleShape;
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Product Rule</div>
         <div class="rule-stage">
           <div class="rule-source">
-            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-u">u</span><span class="dmg-popup" id="rp-primeU">′</span></span>
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-u">${u}</span><span class="dmg-popup" id="rp-primeU">′</span></span>
             <span>·</span>
-            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-v">v</span><span class="dmg-popup" id="rp-primeV">′</span></span>
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-v">${v}</span><span class="dmg-popup" id="rp-primeV">′</span></span>
           </div>
           <div class="rule-arrow">↓</div>
           <div class="rule-dest">
-            <span class="rule-term" id="rp-term1">u′v</span>
+            <span class="rule-term" id="rp-term1">${uPrime}·${v}</span>
             <span class="rule-plus" id="rp-plus">+</span>
-            <span class="rule-term" id="rp-term2">uv′</span>
+            <span class="rule-term" id="rp-term2">${u}·${vPrime}</span>
           </div>
         </div>`;
-    } else if (q && q.ruleShape === "quotient") {
+    } else if (showsRuleDiagram && q.ruleShape.kind === "quotient") {
+      const { u, v, uPrime, vPrime } = q.ruleShape;
       innerHtml = `
         <div class="mistake-banner">${bannerWord}</div>
         <div class="mistake-tag">Quotient Rule</div>
         <div class="rule-stage">
           <div class="rule-source">
-            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-u">u</span><span class="dmg-popup" id="rp-primeU">′</span></span>
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-u">${u}</span><span class="dmg-popup" id="rp-primeU">′</span></span>
             <span>/</span>
-            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-v">v</span><span class="dmg-popup" id="rp-primeV">′</span></span>
+            <span class="rule-sym-wrap"><span class="rule-sym" id="rp-v">${v}</span><span class="dmg-popup" id="rp-primeV">′</span></span>
           </div>
           <div class="rule-arrow">↓</div>
           <div class="rule-dest">
-            (<span class="rule-term" id="rp-term1">u′v</span>
+            (<span class="rule-term" id="rp-term1">${uPrime}·${v}</span>
             <span class="rule-minus" id="rp-minus">−</span>
-            <span class="rule-term" id="rp-term2">uv′</span>)&nbsp;/&nbsp;<span class="rule-term" id="rp-vsq">v²</span>
+            <span class="rule-term" id="rp-term2">${u}·${vPrime}</span>)&nbsp;/&nbsp;<span class="rule-term" id="rp-vsq">${v}${QL.sup(2)}</span>
           </div>
         </div>`;
     } else {
@@ -1534,7 +1560,7 @@
       const plusEl = overlay.querySelector("#rp-plus");
       const minusEl = overlay.querySelector("#rp-minus");
       const vsqEl = overlay.querySelector("#rp-vsq");
-      const isQuotient = q.ruleShape === "quotient";
+      const isQuotient = q.ruleShape.kind === "quotient";
       const joinEl = isQuotient ? minusEl : plusEl;
 
       function resetPlay(el) { if (el) { el.classList.remove("play"); void el.offsetWidth; } }
