@@ -325,9 +325,10 @@
     font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 2.1rem;
     text-shadow: 0 0 10px rgba(125,255,176,0.7);
     pointer-events: none; z-index: 5; will-change: transform, opacity;
-    transition: transform 0.4s cubic-bezier(.4,0,.2,1), opacity 0.4s ease-in;
+    transition: transform 0.7s cubic-bezier(.4,0,.2,1), opacity 0.3s ease-in;
   }
   .exp-flying-clone.arrived { opacity: 0; }
+  .exp-flying-clone.subtracted { animation: exp-hit-flash 0.4s ease-out; }
 
   /* --- product / quotient rule diagram --- */
   .rule-stage {
@@ -1440,7 +1441,6 @@
       setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
     }
     overlay.addEventListener("click", dismiss);
-    setTimeout(dismiss, q.isConstant ? 4200 : 2200);
   }
 
   function shuffleIdx(n) {
@@ -1659,7 +1659,6 @@
         <div class="exp-stage">
           <div class="exp-source">
             ${srcCoefHtml}<span>x</span><sup class="exp-num exp-num--source" id="mp-src">${original}</sup>
-            <span class="dmg-popup">−1</span>
           </div>
           <div class="exp-arrow">→</div>
           <div class="exp-dest">
@@ -1676,7 +1675,6 @@
         <div class="exp-stage">
           <div class="exp-source">
             <span>x</span><sup class="exp-num exp-num--source" id="mp-src">${original}</sup>
-            <span class="dmg-popup">−1</span>
           </div>
           <div class="exp-arrow">→</div>
           <div class="exp-dest">
@@ -1752,15 +1750,24 @@
       const coefDest = overlay.querySelector("#mp-coef");
       const expDest = overlay.querySelector("#mp-exp");
       const prefixDest = overlay.querySelector("#mp-prefix");
-      const dmgPopup = overlay.querySelector(".dmg-popup");
+      const FLIGHT_MS = 700; // must match .exp-flying-clone's transform transition duration
 
-      function spawnClone(destEl, stageRect, srcRect) {
+      function spawnClone(destEl, stageRect, srcRect, isExpTarget) {
         const destRect = destEl.getBoundingClientRect();
         const clone = document.createElement("span");
         clone.className = "exp-flying-clone";
-        clone.textContent = String(original);
         clone.style.left = (srcRect.left - stageRect.left) + "px";
         clone.style.top = (srcRect.top - stageRect.top) + "px";
+        const numSpan = document.createElement("span");
+        numSpan.className = "clone-num";
+        numSpan.textContent = String(original);
+        clone.appendChild(numSpan);
+        if (isExpTarget) {
+          const dmg = document.createElement("span");
+          dmg.className = "dmg-popup";
+          dmg.textContent = "−1";
+          clone.appendChild(dmg);
+        }
         stage.appendChild(clone);
         requestAnimationFrame(() => {
           clone.style.transform = `translate(${destRect.left - srcRect.left}px, ${destRect.top - srcRect.top}px)`;
@@ -1768,12 +1775,12 @@
         return clone;
       }
 
-      // one full hit -> fly -> land cycle; re-run every second so the motion
-      // (not more text) is what drills the rule in, like a looping game replay
+      // Both copies of the exponent depart together and fly the whole distance;
+      // the copy headed for the exponent slot only loses its "-1" at the MIDPOINT
+      // of that flight (not before takeoff, not after landing) — you watch the
+      // subtraction happen mid-transit, right on the number that's changing.
       function playCycle() {
         stage.querySelectorAll(".exp-flying-clone").forEach(c => c.remove());
-        src.classList.remove("hit"); void src.offsetWidth; // restart CSS animation
-        if (dmgPopup) { dmgPopup.classList.remove("play"); void dmgPopup.offsetWidth; }
         coefDest.classList.remove("reveal");
         expDest.classList.remove("reveal");
         if (prefixDest) prefixDest.classList.remove("reveal");
@@ -1781,23 +1788,28 @@
         const stageRect = stage.getBoundingClientRect();
         const srcRect = src.getBoundingClientRect();
 
-        setTimeout(() => { src.classList.add("hit"); if (dmgPopup) dmgPopup.classList.add("play"); }, 200);
+        const c1 = spawnClone(coefDest, stageRect, srcRect, false);
+        const c2 = spawnClone(expDest, stageRect, srcRect, true);
+
         setTimeout(() => {
-          const c1 = spawnClone(coefDest, stageRect, srcRect);
-          const c2 = spawnClone(expDest, stageRect, srcRect);
-          setTimeout(() => {
-            c1.classList.add("arrived");
-            c2.classList.add("arrived");
-            coefDest.classList.add("reveal");
-            expDest.classList.add("reveal");
-            if (prefixDest) prefixDest.classList.add("reveal");
-            setTimeout(() => { c1.remove(); c2.remove(); }, 450);
-          }, 400);
-        }, 450);
+          c2.querySelector(".clone-num").textContent = String(reduced);
+          const dmg = c2.querySelector(".dmg-popup");
+          if (dmg) dmg.classList.add("play");
+          c2.classList.add("subtracted");
+        }, FLIGHT_MS / 2);
+
+        setTimeout(() => {
+          c1.classList.add("arrived");
+          c2.classList.add("arrived");
+          coefDest.classList.add("reveal");
+          expDest.classList.add("reveal");
+          if (prefixDest) prefixDest.classList.add("reveal");
+          setTimeout(() => { c1.remove(); c2.remove(); }, 450);
+        }, FLIGHT_MS);
       }
 
       requestAnimationFrame(playCycle);
-      loopTimer = setInterval(playCycle, 1000);
+      loopTimer = setInterval(playCycle, FLIGHT_MS + 1300);
     } else if (showsRuleDiagram) {
       const uSym = overlay.querySelector("#rp-u");
       const vSym = overlay.querySelector("#rp-v");
@@ -1842,14 +1854,12 @@
     function dismiss() {
       if (dismissed) return;
       dismissed = true;
-      clearTimeout(autoTimer);
       if (loopTimer) clearInterval(loopTimer);
       overlay.style.transition = "opacity 0.12s ease-in";
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
     }
     overlay.addEventListener("click", dismiss);
-    const autoTimer = setTimeout(dismiss, showsFlyDiagram ? 4600 : (showsRuleDiagram ? 5200 : (showsConstDiagram ? 4200 : 3000)));
   }
 
   function goHome() { state = { screen: "home" }; render(); }
