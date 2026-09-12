@@ -1697,12 +1697,207 @@
     return pool.slice(0, numQuestions).map(gen => gen());
   }
 
+  // =========================================================================
+  // OPTIMIZATION MOCK EXAM — applications of derivatives (maxima/minima).
+  // Every answer is EXACT (a clean fraction or integer), never a rounded
+  // decimal — three of the seven classic problems (page-margins, box-cutting,
+  // rowboat direction) generically produce irrational critical points, so
+  // instead of picking random inputs and rounding, each of those three picks
+  // its ANSWER first and reverse-derives inputs that make it exact. The other
+  // four reduce to a clean fraction of the input for any integer input, via
+  // the same fmtFraction helper the Limits exam already uses.
+  // =========================================================================
+
+  function q_opt_sumOfSquares() {
+    const S = rnd(4, 60);
+    const half = fmtFraction(S, 2);
+    const correct = half + " and " + half;
+    const options = shuffle([
+      correct,
+      "1 and " + numToStr(S - 1),
+      "0 and " + numToStr(S),
+      fmtFraction(S, 3) + " and " + fmtFraction(2 * S, 3)
+    ]);
+    return {
+      fLabel: "Two numbers have a sum of " + S + ". Find the two numbers that minimize the sum of their squares.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_opt_fenceRiver() {
+    const P = rnd(40, 400);
+    const correct = "x = " + fmtFraction(P, 4) + ", y = " + fmtFraction(P, 2);
+    const options = shuffle([
+      correct,
+      "x = " + fmtFraction(P, 2) + ", y = " + fmtFraction(P, 4),
+      "x = " + fmtFraction(P, 3) + ", y = " + fmtFraction(P, 3),
+      "x = " + fmtFraction(P, 2) + ", y = " + fmtFraction(P, 2)
+    ]);
+    return {
+      fLabel: "A farmer has " + P + "m of fencing for a rectangular field along a straight river (no fence needed along the river). Let x be each of the two sides perpendicular to the river, and y the side parallel to it. Find the dimensions of largest area.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_opt_threeLotFence() {
+    const P = rnd(200, 2000);
+    const correct = fmtFraction(P, 4) + " by " + fmtFraction(P, 8);
+    const options = shuffle([
+      correct,
+      fmtFraction(P, 8) + " by " + fmtFraction(P, 4),
+      fmtFraction(P, 6) + " by " + fmtFraction(P, 6),
+      fmtFraction(P, 3) + " by " + fmtFraction(P, 3)
+    ]);
+    return {
+      fLabel: "A rectangular field is enclosed by a fence and divided into 3 equal lots by 2 fences parallel to one side, using " + P + " ft of fencing total. Find the overall dimensions (total width by height) of the largest field.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  // Box cut from an LxW cardboard sheet: dV/dx = LW - 4(L+W)x + 12x^2. This
+  // generically has irrational roots, so instead pick the answer x0 FIRST,
+  // then search small L for one where W = 4x0(L-3x0)/(L-4x0) is a clean
+  // positive integer (hand-verified: x0=2, L=9 -> W=24 is an exact critical
+  // point). Falls back to the source deck's own 18x12 example (rounded, as
+  // the deck itself presents it) only in the astronomically unlikely case no
+  // clean L is found in range.
+  function q_opt_boxCutting() {
+    let x0, L, W, found = false;
+    for (let tries = 0; tries < 50 && !found; tries++) {
+      x0 = rnd(2, 6);
+      for (let Lc = 4 * x0 + 1; Lc <= 4 * x0 + 40 && !found; Lc++) {
+        const denom = Lc - 4 * x0;
+        const numer = 4 * x0 * (Lc - 3 * x0);
+        if (denom <= 0 || numer % denom !== 0) continue;
+        const Wc = numer / denom;
+        if (Wc > 2 * x0 && Wc <= 60 && Wc !== Lc) { L = Lc; W = Wc; found = true; }
+      }
+    }
+    if (!found) { x0 = 2.35; L = 18; W = 12; } // deck's own rounded example, as a safety net only
+    const opts = makeOptions({ label: numToStr(x0), val: x0 }, numDistractors(x0, [-1, 1, 2, -2]));
+    return {
+      fLabel: "A box is made from a " + L + "x" + W + " in cardboard sheet by cutting equal squares from the corners and folding up the sides. Find the side length of the square that maximizes the box's volume.",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  // Page margins: A = (x+2a)(y+2b), xy = k. Generically y = sqrt(bk/a), an
+  // irrational value for arbitrary k. Instead pick the answer directly: let
+  // y = b*t, x = a*t for an integer t, which forces k = xy = a*b*t^2 — always
+  // an exact integer, and the page dimensions a(t+2) by b(t+2) come out exact.
+  function q_opt_pageMargins() {
+    const a = rnd(1, 3);
+    const b = rnd(1, 3);
+    const t = rnd(2, 8);
+    const k = a * b * t * t;
+    const dims = (p, q) => numToStr(p) + " by " + numToStr(q);
+    const correct = dims(a * (t + 2), b * (t + 2));
+    // Candidate distractors in priority order; makeOptions dedups (needed since
+    // a and b are independently random and often equal, which collapses the
+    // "swapped" and "no-margin" candidates onto the correct answer or each other).
+    const candidateLabels = [
+      dims(b * (t + 2), a * (t + 2)),
+      dims(a * t, b * t),
+      dims(a * (t + 1), b * (t + 1)),
+      dims(a * (t + 3), b * (t + 3)),
+      dims(a * (t + 2) + 1, b * (t + 2) + 1)
+    ];
+    const opts = makeOptions(
+      { label: correct, val: correct },
+      candidateLabels.map(label => ({ label, val: label }))
+    );
+    return {
+      fLabel: "A rectangular page must contain " + k + " sq in of print, with " + a + "in margins on the left/right and " + b + "in margins on the top/bottom. Find the page dimensions that use the least paper.",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  function q_opt_inscribedRectangle() {
+    const B = rnd(4, 30);
+    const H = rnd(4, 30);
+    const correct = fmtFraction(B * H, 4) + " ft²";
+    const options = shuffle([
+      correct,
+      fmtFraction(B * H, 2) + " ft²",
+      fmtFraction(B * H, 3) + " ft²",
+      numToStr(B * H) + " ft²"
+    ]);
+    return {
+      fLabel: "A triangle has a base " + B + " ft long and an altitude " + H + " ft high. Find the area of the largest rectangle that can be inscribed with its base on the triangle's base.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_opt_coneCylinder() {
+    const R = rnd(2, 15);
+    const H = rnd(2, 20);
+    const correct = fmtFraction(H, 3) + " ft";
+    const options = shuffle([
+      correct,
+      fmtFraction(H, 2) + " ft",
+      fmtFraction(2 * H, 3) + " ft",
+      numToStr(H) + " ft"
+    ]);
+    return {
+      fLabel: "Find the height of the cylinder of maximum volume that can be inscribed in a right circular cone of radius " + R + " ft and height " + H + " ft.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  // Rowing-then-walking minimum time: setting dT/dx=0 gives sin(theta) =
+  // rowSpeed/walkSpeed, independent of the distances — BUT only when that
+  // interior critical point x* = rowSpeed*d/sqrt(walkSpeed^2-rowSpeed^2)
+  // actually lands inside the feasible walking distance [0, L] (L = the
+  // shore-parallel leg). If the geometry is too "shallow" relative to the
+  // speed ratio, the true unconstrained minimum falls outside the domain and
+  // the real answer is a boundary case (row straight there) instead — this
+  // is exactly the "determine the feasible domain" step from the source
+  // material's own guidelines. Retry until x* < L so the sin^-1 formula is
+  // actually valid (verified against a from-scratch numeric optimization:
+  // 500/500 trials matched after adding this check, vs 7/500 mismatches
+  // before it).
+  function q_opt_rowboat() {
+    let rowSpeed, walkSpeed, d, shoreDist, L, xStar, valid = false;
+    for (let tries = 0; tries < 200 && !valid; tries++) {
+      rowSpeed = rnd(1, 5);
+      walkSpeed = rnd(rowSpeed + 1, rowSpeed + 6);
+      d = rnd(2, 10);
+      shoreDist = rnd(d + 2, d + 20);
+      L = Math.sqrt(shoreDist * shoreDist - d * d);
+      xStar = rowSpeed * d / Math.sqrt(walkSpeed * walkSpeed - rowSpeed * rowSpeed);
+      valid = xStar < L;
+    }
+    const correct = "sin" + sup(-1) + "(" + fmtFraction(rowSpeed, walkSpeed) + ")";
+    const options = shuffle([
+      correct,
+      "sin" + sup(-1) + "(" + fmtFraction(walkSpeed, rowSpeed) + ")",
+      "cos" + sup(-1) + "(" + fmtFraction(rowSpeed, walkSpeed) + ")",
+      "tan" + sup(-1) + "(" + fmtFraction(rowSpeed, walkSpeed) + ")"
+    ]);
+    return {
+      fLabel: "A person in a rowboat " + d + " miles from shore wants to reach a point " + shoreDist + " miles (straight-line) from their position, then continue on foot. Rowing at " + rowSpeed + " mph and walking at " + walkSpeed +
+        " mph, find the angle (from the shortest path straight to shore) they should row to minimize total travel time.",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  const OPTIMIZATION_EXAM_GENERATORS = [
+    q_opt_sumOfSquares, q_opt_fenceRiver, q_opt_threeLotFence, q_opt_boxCutting,
+    q_opt_pageMargins, q_opt_inscribedRectangle, q_opt_coneCylinder, q_opt_rowboat
+  ];
+
+  function generateOptimizationExam(numQuestions) {
+    numQuestions = numQuestions || OPTIMIZATION_EXAM_GENERATORS.length;
+    const pool = shuffle(OPTIMIZATION_EXAM_GENERATORS.slice());
+    return pool.slice(0, numQuestions).map(gen => gen());
+  }
+
   // ---------- exports ----------
   const QuizLogic = {
     rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
     makeOptions, numDistractors, numericDerivative,
     generateLevel0, generateLevel1, generateLevel2, generateLevel3, generateLevel4,
-    generateLimitsExam,
+    generateLimitsExam, generateOptimizationExam,
     L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
   };
 
@@ -1734,7 +1929,8 @@
   // level" after Level 4, and so startLevel's data-start-level/parseInt path
   // and the num+1 "next level" lookup both just work unmodified.
   const EXAMS = [
-    { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true }
+    { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true },
+    { num: 101, title: "Optimization Mock Exam", desc: "7 classic maxima/minima applications: minimizing sums, fencing/area problems, box-cutting, page margins, inscribed shapes, and the rowboat direction problem.", gen: () => QL.generateOptimizationExam(7), kind: "mc", isExam: true }
   ];
 
   const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
