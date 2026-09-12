@@ -316,7 +316,7 @@
     background: rgba(125,255,176,0.12); border: 1px solid rgba(125,255,176,0.5);
     color: #7dffb0; font-family: "Cambria Math", Cambria, Georgia, serif;
     font-size: 1.5rem; font-weight: 800; text-shadow: 0 0 10px rgba(125,255,176,0.5);
-    animation: exp-land-bounce 0.4s cubic-bezier(.34,1.56,.64,1) 0.15s both;
+    animation: exp-land-bounce 1s cubic-bezier(.34,1.56,.64,1) 0.15s infinite;
   }
 
   .mistake-hint { font-size: 0.68rem; color: #7a6f82; margin-top: 12px; letter-spacing: 0.02em; }
@@ -1318,34 +1318,42 @@
       </div>`;
     document.body.appendChild(overlay);
 
+    let loopTimer = null;
     if (isExpDiagram) {
-      requestAnimationFrame(() => {
-        const stage = overlay.querySelector(".exp-stage");
-        const src = overlay.querySelector("#mp-src");
-        const coefDest = overlay.querySelector("#mp-coef");
-        const expDest = overlay.querySelector("#mp-exp");
+      const stage = overlay.querySelector(".exp-stage");
+      const src = overlay.querySelector("#mp-src");
+      const coefDest = overlay.querySelector("#mp-coef");
+      const expDest = overlay.querySelector("#mp-exp");
+
+      function spawnClone(destEl, stageRect, srcRect) {
+        const destRect = destEl.getBoundingClientRect();
+        const clone = document.createElement("span");
+        clone.className = "exp-flying-clone";
+        clone.textContent = String(original);
+        clone.style.left = (srcRect.left - stageRect.left) + "px";
+        clone.style.top = (srcRect.top - stageRect.top) + "px";
+        stage.appendChild(clone);
+        requestAnimationFrame(() => {
+          clone.style.transform = `translate(${destRect.left - srcRect.left}px, ${destRect.top - srcRect.top}px)`;
+        });
+        return clone;
+      }
+
+      // one full hit -> fly -> land cycle; re-run every second so the motion
+      // (not more text) is what drills the rule in, like a looping game replay
+      function playCycle() {
+        stage.querySelectorAll(".exp-flying-clone").forEach(c => c.remove());
+        src.classList.remove("hit"); void src.offsetWidth; // restart CSS animation
+        coefDest.classList.remove("reveal");
+        expDest.classList.remove("reveal");
+
         const stageRect = stage.getBoundingClientRect();
         const srcRect = src.getBoundingClientRect();
 
-        function spawnClone(destEl) {
-          const destRect = destEl.getBoundingClientRect();
-          const clone = document.createElement("span");
-          clone.className = "exp-flying-clone";
-          clone.textContent = String(original);
-          clone.style.left = (srcRect.left - stageRect.left) + "px";
-          clone.style.top = (srcRect.top - stageRect.top) + "px";
-          stage.appendChild(clone);
-          requestAnimationFrame(() => {
-            clone.style.transform = `translate(${destRect.left - srcRect.left}px, ${destRect.top - srcRect.top}px)`;
-          });
-          return clone;
-        }
-
         setTimeout(() => { src.classList.add("hit"); }, 200);
-
         setTimeout(() => {
-          const c1 = spawnClone(coefDest);
-          const c2 = spawnClone(expDest);
+          const c1 = spawnClone(coefDest, stageRect, srcRect);
+          const c2 = spawnClone(expDest, stageRect, srcRect);
           setTimeout(() => {
             c1.classList.add("arrived");
             c2.classList.add("arrived");
@@ -1354,7 +1362,10 @@
             setTimeout(() => { c1.remove(); c2.remove(); }, 450);
           }, 400);
         }, 450);
-      });
+      }
+
+      requestAnimationFrame(playCycle);
+      loopTimer = setInterval(playCycle, 1000);
     }
 
     let dismissed = false;
@@ -1362,12 +1373,13 @@
       if (dismissed) return;
       dismissed = true;
       clearTimeout(autoTimer);
+      if (loopTimer) clearInterval(loopTimer);
       overlay.style.transition = "opacity 0.12s ease-in";
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.remove(); mistakePopupActive = false; }, 130);
     }
     overlay.addEventListener("click", dismiss);
-    const autoTimer = setTimeout(dismiss, isExpDiagram ? 2000 : 1300);
+    const autoTimer = setTimeout(dismiss, isExpDiagram ? 4600 : 3000);
   }
 
   function goHome() { state = { screen: "home" }; render(); }
