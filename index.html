@@ -130,6 +130,10 @@
     font-size: 1.15rem; font-family: "Cambria Math", Cambria, Georgia, serif;
     color: var(--navy); margin-bottom: 22px; line-height: 1.6;
   }
+  .question-hint {
+    font-size: 0.85rem; color: var(--blue); background: #eef3fc;
+    border-radius: 8px; padding: 8px 12px; margin: -12px 0 18px; display: inline-block;
+  }
   .template-line {
     font-size: 1.12rem; font-family: "Cambria Math", Cambria, Georgia, serif;
     line-height: 2.6; color: #222;
@@ -430,6 +434,7 @@
 
     .question-card { padding: 18px 16px; }
     .question-prompt { font-size: 1rem; line-height: 1.5; margin-bottom: 16px; }
+    .question-hint { font-size: 0.78rem; margin-top: -8px; }
     .template-line { font-size: 1rem; line-height: 1.9; }
     .template-row { padding: 8px 0; }
     select.blank { font-size: 0.92rem; padding: 5px 6px; }
@@ -880,7 +885,67 @@
     };
   }
 
-  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule];
+  // Bridge templates: the SAME u'/v'/combine structure as Level 3's product
+  // and quotient questions, but with the simplest possible pieces (u = x²,
+  // v = a linear term) so the only new skill being tested is combining two
+  // already-easy derivatives — not also parsing harder numbers at the same time.
+  function q_L2_simpleProduct() {
+    const a = rnd(1, 9) * pick([1, -1]);
+    const vDisplay = "(x" + (a < 0 ? " " + MINUS + " " + Math.abs(a) : " + " + a) + ")";
+    const u = (x) => Math.pow(x, 2), v = (x) => x + a;
+    const f = (x) => u(x) * v(x);
+    const b1 = makeOptions({ label: formatMono(2, 1), val: "2_1" }, [
+      { label: formatMono(1, 1), val: "1_1" }, { label: formatMono(2, 2), val: "2_2" }, { label: "0", val: "zero" }
+    ]);
+    const b2 = makeOptions({ label: "1", val: 1 }, [
+      { label: "0", val: 0 }, { label: "x", val: "x" }, { label: numToStr(a), val: a }
+    ]);
+    const structOpts = shuffle(["u′v + uv′", "u′v " + MINUS + " uv′", "u′v′", "uv′ " + MINUS + " u′v"]);
+    const b3 = { options: structOpts, correctIndex: structOpts.indexOf("u′v + uv′") };
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: "f(x) = x² · " + vDisplay + "   [u = x², v = " + vDisplay + "]",
+      renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      ruleShape: { kind: "product", u: "x²", v: vDisplay, uPrime: formatMono(2, 1), vPrime: "1" },
+      _check: (x) => (2 * x) * v(x) + u(x) * 1,
+      _f: f
+    };
+  }
+
+  function q_L2_simpleQuotient() {
+    const a = rnd(1, 9) * pick([1, -1]);
+    const vDisplay = "(x" + (a < 0 ? " " + MINUS + " " + Math.abs(a) : " + " + a) + ")";
+    const u = (x) => Math.pow(x, 2), v = (x) => x + a;
+    const f = (x) => u(x) / v(x);
+    const b1 = makeOptions({ label: formatMono(2, 1), val: "2_1" }, [
+      { label: formatMono(1, 1), val: "1_1" }, { label: formatMono(2, 2), val: "2_2" }, { label: "0", val: "zero" }
+    ]);
+    const b2 = makeOptions({ label: "1", val: 1 }, [
+      { label: "0", val: 0 }, { label: "x", val: "x" }, { label: numToStr(a), val: a }
+    ]);
+    const structOpts = shuffle(["(u′v " + MINUS + " uv′)/v²", "(u′v + uv′)/v²", "(uv′ " + MINUS + " u′v)/v²", "(u′v " + MINUS + " uv′)/v"]);
+    const b3 = { options: structOpts, correctIndex: structOpts.indexOf("(u′v " + MINUS + " uv′)/v²") };
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: "f(x) = x² / " + vDisplay + "   [u = x², v = " + vDisplay + "]",
+      renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex },
+        { key: "b3", options: b3.options, correctIndex: b3.correctIndex }
+      ],
+      ruleShape: { kind: "quotient", u: "x²", v: vDisplay, uPrime: formatMono(2, 1), vPrime: "1" },
+      _check: (x) => ((2 * x) * v(x) - u(x) * 1) / Math.pow(v(x), 2),
+      _f: f
+    };
+  }
+
+  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule, q_L2_simpleProduct, q_L2_simpleQuotient];
 
   function generateLevel2(numQuestions) {
     numQuestions = numQuestions || 5;
@@ -921,6 +986,7 @@
     return {
       level: 3, type: "blanks",
       renderPrompt: "f(x) = x" + sup(p) + " · (x" + sup(q) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c) + ")   [u = x" + sup(p) + ", v = x" + sup(q) + (c < 0 ? MINUS + Math.abs(c) : "+" + c) + "]",
+      hint: "Find u′ and v′ separately first (power rule on each) — then combine them with the product rule pattern.",
       renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
       blanks: [
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
@@ -956,6 +1022,7 @@
     return {
       level: 3, type: "blanks",
       renderPrompt: "f(x) = x" + sup(p) + " / (x" + sup(q) + (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c) + ")   [u = x" + sup(p) + ", v = x" + sup(q) + (c < 0 ? MINUS + Math.abs(c) : "+" + c) + "]",
+      hint: "Find u′ and v′ separately first (power rule on each) — then combine them with the quotient rule pattern.",
       renderTemplate: "u′ = {b1}     v′ = {b2}     f′(x) = {b3}",
       blanks: [
         { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
@@ -1553,6 +1620,7 @@
       <div class="question-card">
         <div class="qtag">Question ${state.index + 1} of ${total}</div>
         <div class="question-prompt">${q.renderPrompt}</div>
+        ${q.hint ? `<div class="question-hint">💡 ${escapeHtml(q.hint)}</div>` : ""}
         <div class="template-line">${templateHtml}</div>
         <div class="actions-row">
           ${state.checked
