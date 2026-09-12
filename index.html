@@ -54,6 +54,13 @@
   }
 
   /* ---- Level select screen ---- */
+  .section-heading {
+    margin: 28px 0 16px;
+    font-size: 1.05rem;
+    color: var(--navy);
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
   .level-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1452,11 +1459,250 @@
     return chosen;
   }
 
+  // =========================================================================
+  // LIMITS MOCK EXAM — a separate topic from the derivative levels above.
+  // Multiple choice (reuses the same "mc" rendering as Level 0). Fixed pool of
+  // 12 generators, one per technique; generateLimitsExam always uses the full
+  // pool (shuffled order) so every attempt covers every technique exactly
+  // once — squeeze theorem and the three infinity/degree-comparison cases are
+  // never left to random draw luck.
+  // =========================================================================
+
+  function gcd(x, y) {
+    x = Math.abs(x); y = Math.abs(y);
+    while (y) { const t = y; y = x % y; x = t; }
+    return x || 1;
+  }
+
+  // Reduced "n/d" fraction display, or a bare integer when it divides evenly.
+  function fmtFraction(n, d) {
+    if (d < 0) { n = -n; d = -d; }
+    const g = gcd(n, d);
+    n = n / g; d = d / g;
+    if (d === 1) return numToStr(n);
+    return (n < 0 ? MINUS + Math.abs(n) : String(n)) + "/" + d;
+  }
+
+  // "Ax² + Bx + C" display, reusing the same sign-handling convention as
+  // formatLinear/formatMono elsewhere in this file.
+  function formatQuadratic(A, B, C) {
+    const aPart = formatMono(A, 2);
+    const bPart = B === 0 ? "" : (B < 0 ? " " + MINUS + " " + formatMono(Math.abs(B), 1) : " + " + formatMono(B, 1));
+    const cPart = C === 0 ? "" : (C < 0 ? " " + MINUS + " " + Math.abs(C) : " + " + C);
+    return aPart + bPart + cPart;
+  }
+
+  // ---- direct substitution ----
+  function q_lim_directSubPoly() {
+    const x0 = rnd(-4, 4);
+    const A = rnd(1, 5) * pick([1, -1]);
+    const B = rnd(-6, 6);
+    const C = rnd(-6, 6);
+    const val = A * x0 * x0 + B * x0 + C;
+    const opts = makeOptions({ label: numToStr(val), val }, numDistractors(val, [-1, 1, A, -A, B]));
+    return {
+      fLabel: "lim(x→" + numToStr(x0) + ") [" + formatQuadratic(A, B, C) + "]",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  function q_lim_directSubRational() {
+    let x0, D, k;
+    do {
+      x0 = rnd(-5, 5);
+      D = rnd(-5, 5);
+      k = x0 + D;
+    } while (k === 0);
+    const val = rnd(1, 4) * pick([1, -1]);
+    const N = val * k - x0;
+    const opts = makeOptions({ label: numToStr(val), val }, numDistractors(val, [-1, 1, 2, -2]));
+    const numPart = "(x " + (N < 0 ? MINUS + " " + Math.abs(N) : "+ " + N) + ")";
+    const denomPart = "(x " + (D < 0 ? MINUS + " " + Math.abs(D) : "+ " + D) + ")";
+    return {
+      fLabel: "lim(x→" + numToStr(x0) + ") " + numPart + "/" + denomPart,
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  // ---- 0/0 indeterminate forms: factoring ----
+  function q_lim_factorDiffSquares() {
+    let x0 = rnd(-6, 6);
+    if (x0 === 0) x0 = 3;
+    const val = 2 * x0;
+    const r2 = x0 * x0;
+    const opts = makeOptions({ label: numToStr(val), val }, numDistractors(val, [-1, 1, x0, -x0, 2]));
+    const denomPart = "(x " + (x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0) + ")";
+    return {
+      fLabel: "lim(x→" + numToStr(x0) + ") (x² " + MINUS + " " + r2 + ")/" + denomPart,
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  function q_lim_factorGeneral() {
+    let x0 = rnd(-5, 5);
+    if (x0 === 0) x0 = 2;
+    const B = rnd(-6, 6);
+    const s = -B - x0; // the OTHER root of x^2+Bx+C, given one root is x0
+    const C = x0 * s;
+    const val = x0 - s; // = 2*x0 + B, the limit after cancelling (x - x0)
+    const opts = makeOptions({ label: numToStr(val), val }, numDistractors(val, [-1, 1, B, -B, x0]));
+    const denomPart = "(x " + (x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0) + ")";
+    return {
+      fLabel: "lim(x→" + numToStr(x0) + ") (" + formatQuadratic(1, B, C) + ")/" + denomPart,
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  // ---- 0/0 indeterminate form: rationalizing (conjugate) ----
+  function q_lim_rationalize() {
+    const m = rnd(1, 6);
+    const k = m * m;
+    const correct = fmtFraction(1, 2 * m);
+    const distractorPool = [fmtFraction(1, m), numToStr(2 * m), fmtFraction(1, 2 * m + 2), fmtFraction(m, 2)]
+      .filter(v => v !== correct);
+    const chosen = [...new Set(distractorPool)].slice(0, 3);
+    const options = shuffle([correct, ...chosen]);
+    return {
+      fLabel: "lim(x→0) (√(x + " + k + ") " + MINUS + " √" + k + ")/x",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  // ---- one-sided limits (piecewise) ----
+  function q_lim_oneSided() {
+    const x0 = rnd(-4, 4);
+    const p = rnd(-6, 6) || 2;
+    const q = rnd(-6, 6) || -3;
+    const leftVal = x0 + p;
+    const rightVal = x0 * x0 + q;
+    const fromRight = pick([true, false]);
+    const correctVal = fromRight ? rightVal : leftVal;
+    const otherVal = fromRight ? leftVal : rightVal;
+    const sideSymbol = fromRight ? "⁺" : "⁻";
+    const opts = makeOptions(
+      { label: numToStr(correctVal), val: correctVal },
+      [{ label: numToStr(otherVal), val: otherVal }, ...numDistractors(correctVal, [1, -1, 2, -2])]
+    );
+    const pPart = p < 0 ? " " + MINUS + " " + Math.abs(p) : " + " + p;
+    const qPart = q < 0 ? " " + MINUS + " " + Math.abs(q) : " + " + q;
+    return {
+      fLabel: "f(x) = { x" + pPart + "  if x < " + numToStr(x0) + " ;  x²" + qPart + "  if x ≥ " + numToStr(x0) +
+        " }.   Find lim(x→" + numToStr(x0) + sideSymbol + ") f(x)",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  // ---- infinite limits (vertical asymptote sign) ----
+  function q_lim_infiniteLimit() {
+    const x0 = rnd(-5, 5);
+    const k = rnd(1, 9) * pick([1, -1]);
+    const fromRight = pick([true, false]);
+    const denomSign = fromRight ? 1 : -1; // (x - x0) -> 0+ from the right, 0- from the left
+    const overallSign = Math.sign(k) * denomSign;
+    const correct = overallSign > 0 ? "+∞" : (MINUS + "∞");
+    const opposite = overallSign > 0 ? (MINUS + "∞") : "+∞";
+    const options = shuffle([correct, opposite, "0", "DNE"]);
+    const sideSymbol = fromRight ? "⁺" : "⁻";
+    const denomPart = "(x " + (x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0) + ")";
+    return {
+      fLabel: "lim(x→" + numToStr(x0) + sideSymbol + ") " + numToStr(k) + "/" + denomPart,
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  // ---- limits at infinity: compare degrees ("approaches infinity with powers") ----
+  function q_lim_infinityDegreeLess() {
+    const A = rnd(1, 9) * pick([1, -1]);
+    const B = rnd(-9, 9);
+    const C = rnd(1, 9) * pick([1, -1]);
+    const D = rnd(-9, 9);
+    const E = rnd(-9, 9);
+    const correct = "0";
+    const wrongRatio = fmtFraction(A, C);
+    const options = shuffle([correct, wrongRatio, "+∞", MINUS + "∞"]);
+    return {
+      fLabel: "lim(x→∞) (" + formatLinear(A, B) + ")/(" + formatQuadratic(C, D, E) + ")",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_lim_infinityDegreeEqual() {
+    const A = rnd(1, 9) * pick([1, -1]);
+    const B = rnd(-9, 9);
+    const C = rnd(-9, 9);
+    const D = rnd(1, 9) * pick([1, -1]);
+    const E = rnd(-9, 9);
+    const F = rnd(-9, 9);
+    const correct = fmtFraction(A, D);
+    const perturbedD = D + (D > 0 ? 1 : -1);
+    const options = shuffle([correct, "0", "+∞", fmtFraction(A, perturbedD)]);
+    return {
+      fLabel: "lim(x→∞) (" + formatQuadratic(A, B, C) + ")/(" + formatQuadratic(D, E, F) + ")",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  function q_lim_infinityDegreeGreater() {
+    const A = rnd(1, 9) * pick([1, -1]);
+    const B = rnd(-9, 9);
+    const D = rnd(1, 9) * pick([1, -1]);
+    const E = rnd(-9, 9);
+    const sign = Math.sign(A / D);
+    const correct = sign > 0 ? "+∞" : (MINUS + "∞");
+    const opposite = sign > 0 ? (MINUS + "∞") : "+∞";
+    const options = shuffle([correct, opposite, "0", fmtFraction(A, D)]);
+    const numPart = formatMono(A, 3) + (B === 0 ? "" : (B < 0 ? " " + MINUS + " " + formatMono(Math.abs(B), 1) : " + " + formatMono(B, 1)));
+    return {
+      fLabel: "lim(x→∞) (" + numPart + ")/(" + formatLinear(D, E) + ")",
+      options, correctIndex: options.indexOf(correct)
+    };
+  }
+
+  // ---- squeeze theorem ----
+  function q_lim_squeezeClassic() {
+    const options = shuffle(["0", "1", "DNE (oscillates)", "∞"]);
+    return {
+      fLabel: "lim(x→0) x² · sin(1/x) = ?   [hint: " + MINUS + "x² ≤ x²sin(1/x) ≤ x²]",
+      options, correctIndex: options.indexOf("0")
+    };
+  }
+
+  function q_lim_squeezeGeneral() {
+    const x0 = rnd(-4, 4);
+    const L = rnd(-6, 6);
+    const k = rnd(1, 5);
+    const opts = makeOptions(
+      { label: numToStr(L), val: L },
+      [...numDistractors(L, [k, -k, 1, -1]), { label: "DNE", val: "dne" }]
+    );
+    const x0Part = x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0;
+    const kPart = k === 1 ? "" : String(k);
+    return {
+      fLabel: "If " + numToStr(L) + " " + MINUS + " " + kPart + "(x " + x0Part + ")² ≤ f(x) ≤ " + numToStr(L) + " + " + kPart +
+        "(x " + x0Part + ")²  for all x near " + numToStr(x0) + ", find lim(x→" + numToStr(x0) + ") f(x)   [Squeeze Theorem]",
+      options: opts.options, correctIndex: opts.correctIndex
+    };
+  }
+
+  const LIMITS_EXAM_GENERATORS = [
+    q_lim_directSubPoly, q_lim_directSubRational, q_lim_factorDiffSquares, q_lim_factorGeneral,
+    q_lim_rationalize, q_lim_oneSided, q_lim_infiniteLimit,
+    q_lim_infinityDegreeLess, q_lim_infinityDegreeEqual, q_lim_infinityDegreeGreater,
+    q_lim_squeezeClassic, q_lim_squeezeGeneral
+  ];
+
+  function generateLimitsExam(numQuestions) {
+    numQuestions = numQuestions || LIMITS_EXAM_GENERATORS.length;
+    const pool = shuffle(LIMITS_EXAM_GENERATORS.slice());
+    return pool.slice(0, numQuestions).map(gen => gen());
+  }
+
   // ---------- exports ----------
   const QuizLogic = {
     rnd, pick, sign, shuffle, formatMono, formatLinear, sup, MINUS, numToStr,
     makeOptions, numDistractors, numericDerivative,
     generateLevel0, generateLevel1, generateLevel2, generateLevel3, generateLevel4,
+    generateLimitsExam,
     L2_TEMPLATES, L3_TEMPLATES, L4_TEMPLATES, L1_GENERATORS
   };
 
@@ -1483,6 +1729,14 @@
     { num: 4, title: "Advanced (Up to 3 Layers)", desc: "Nested and compound derivatives requiring three combined rules — the hardest tier.", gen: () => QL.generateLevel4(5), kind: "blanks" }
   ];
 
+  // Separate topic from the derivative levels above — kept out of LEVELS (and
+  // given a num far outside 0-4) so it can never get chained in as a "next
+  // level" after Level 4, and so startLevel's data-start-level/parseInt path
+  // and the num+1 "next level" lookup both just work unmodified.
+  const EXAMS = [
+    { num: 100, title: "Limits Mock Exam", desc: "12 questions covering direct substitution, factoring/rationalizing 0/0 forms, one-sided and infinite limits, limits at infinity (comparing degrees), and the squeeze theorem.", gen: () => QL.generateLimitsExam(12), kind: "mc", isExam: true }
+  ];
+
   const bestScores = {}; // in-memory only (no persistence needed for a "randomize every take" quiz)
 
   let state = { screen: "home" };
@@ -1493,25 +1747,30 @@
     else if (state.screen === "summary") renderSummary();
   }
 
-  function renderHome() {
-    let cardsHtml = LEVELS.map(lv => {
-      const best = bestScores[lv.num];
-      return `
+  function levelCardHtml(lv) {
+    const best = bestScores[lv.num];
+    return `
         <div class="level-card">
-          <h2><span class="level-num">${lv.num}</span>${escapeHtml(lv.title)}</h2>
+          <h2>${lv.isExam ? "" : `<span class="level-num">${lv.num}</span>`}${escapeHtml(lv.title)}</h2>
           <p>${escapeHtml(lv.desc)}</p>
           ${best ? `<div class="best-score">Best this session: ${best.correct}/${best.total}</div>` : ""}
-          <button class="btn-primary" data-start-level="${lv.num}">Start Level ${lv.num}</button>
+          <button class="btn-primary" data-start-level="${lv.num}">${lv.isExam ? "Start Exam" : "Start Level " + lv.num}</button>
         </div>`;
-    }).join("");
+  }
+
+  function renderHome() {
+    const cardsHtml = LEVELS.map(levelCardHtml).join("");
+    const examsHtml = EXAMS.map(levelCardHtml).join("");
 
     app.innerHTML = `
       <header class="site-header">
         <div class="badge">Randomized Every Attempt</div>
-        <h1>Derivatives Practice Quiz</h1>
-        <p>5 levels, from plain multiple choice to 3-layer combined derivatives</p>
+        <h1>Calculus Practice Quiz</h1>
+        <p>5 derivative levels, from plain multiple choice to 3-layer combined derivatives — plus topic-specific mock exams</p>
       </header>
       <div class="level-grid">${cardsHtml}</div>
+      <h2 class="section-heading">Mock Exams</h2>
+      <div class="level-grid">${examsHtml}</div>
       <footer class="site-footer">Standalone quiz &middot; works fully offline &middot; refresh or retry for a brand-new random set every time &middot; <a href="./Calculus-Midterm-Reviewer-Corrected.pdf" target="_blank" rel="noopener" style="color:inherit;">Download the full reviewer PDF</a></footer>
     `;
 
@@ -1521,7 +1780,7 @@
   }
 
   function startLevel(num) {
-    const lv = LEVELS.find(l => l.num === num);
+    const lv = LEVELS.find(l => l.num === num) || EXAMS.find(e => e.num === num);
     const questions = lv.gen();
     state = {
       screen: "quiz",
@@ -1556,10 +1815,11 @@
 
   function renderTopbar(progressCurrent, progressTotal, extraInfo) {
     const pct = Math.round((progressCurrent / progressTotal) * 100);
+    const label = state.level.isExam ? escapeHtml(state.level.title) : `Level ${state.level.num}: ${escapeHtml(state.level.title)}`;
     return `
       <div class="quiz-topbar">
-        <button class="btn-ghost home-link" data-go-home>&larr; All Levels</button>
-        <div class="info">Level ${state.level.num}: <b>${escapeHtml(state.level.title)}</b> &nbsp;|&nbsp; ${extraInfo}</div>
+        <button class="btn-ghost home-link" data-go-home>&larr; Home</button>
+        <div class="info"><b>${label}</b> &nbsp;|&nbsp; ${extraInfo}</div>
       </div>
       <div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
     `;
@@ -1662,7 +1922,7 @@
             : ""}
           <button class="btn-ghost" data-go-home>Exit to Menu</button>
         </div>
-        ${state.mcAnswered ? `<div class="feedback-msg ${q.correctIndex === state.mcChosenIndex ? "correct" : "incorrect"}">${q.correctIndex === state.mcChosenIndex ? "✓ Correct!" : "✗ Not quite — the correct derivative is highlighted."}</div>` : ""}
+        ${state.mcAnswered ? `<div class="feedback-msg ${q.correctIndex === state.mcChosenIndex ? "correct" : "incorrect"}">${q.correctIndex === state.mcChosenIndex ? "✓ Correct!" : "✗ Not quite — the correct answer is highlighted."}</div>` : ""}
       </div>
     `;
 
@@ -2214,22 +2474,24 @@
     const total = state.questions.length;
     const correct = state.correctCount;
     const pct = Math.round((correct / total) * 100);
+    const noun = state.level.isExam ? "exam" : "level";
     let msg;
-    if (pct === 100) msg = "Perfect score! You've mastered this level.";
+    if (pct === 100) msg = `Perfect score! You've mastered this ${noun}.`;
     else if (pct >= 70) msg = "Solid work — review the ones you missed and try again.";
-    else msg = "Keep practicing — try this level again with a fresh random set.";
+    else msg = `Keep practicing — try this ${noun} again with a fresh random set.`;
 
     const nextLevel = LEVELS.find(l => l.num === state.level.num + 1);
+    const titleLabel = state.level.isExam ? escapeHtml(state.level.title) : `Level ${state.level.num}: ${escapeHtml(state.level.title)}`;
 
     app.innerHTML = `
       <div class="summary-card">
-        <div class="qtag" style="text-align:center;">Level ${state.level.num}: ${escapeHtml(state.level.title)} — Complete</div>
+        <div class="qtag" style="text-align:center;">${titleLabel} — Complete</div>
         <div class="summary-score">${correct}<span> / ${total}</span></div>
         <div class="summary-msg">${msg}</div>
         <div class="actions-row" style="justify-content:center;">
           <button class="btn-primary" data-retry>↻ Retry (New Random Set)</button>
           ${nextLevel ? `<button class="btn-primary" data-next-level>Next: Level ${nextLevel.num} →</button>` : ""}
-          <button class="btn-secondary" data-go-home>All Levels</button>
+          <button class="btn-secondary" data-go-home>Home</button>
         </div>
       </div>
     `;
