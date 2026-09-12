@@ -983,7 +983,78 @@
     };
   }
 
-  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule, q_L2_simpleProduct, q_L2_simpleQuotient, q_L2_simpleChainSum];
+  // Tangent & Normal line of a parabola: a genuinely new skill (evaluating
+  // the derivative AT A POINT, then building a line equation from it) rather
+  // than just computing a derivative expression. Kept in slope-intercept
+  // form (y = mx + b) instead of point-slope so the answer is two clean
+  // numbers instead of an expression whose "x − x0" sign has to be parsed.
+  function genParabolaAndPoint() {
+    let a, b, c, x0, m;
+    do {
+      a = rnd(1, 3) * pick([1, -1]);
+      b = rnd(-6, 6);
+      c = rnd(-6, 6);
+      x0 = rnd(-3, 3);
+      if (x0 === 0) x0 = pick([1, -1]) * rnd(1, 3);
+      m = 2 * a * x0 + b; // f'(x0), avoid the degenerate horizontal-tangent case
+    } while (m === 0);
+    return { a, b, c, x0, m };
+  }
+
+  function parabolaPromptString(a, b, c, x0) {
+    const bxPart = b === 0 ? "" : (b < 0 ? " " + MINUS + " " + formatMono(Math.abs(b), 1) : " + " + formatMono(b, 1));
+    const cPart = c === 0 ? "" : (c < 0 ? " " + MINUS + " " + Math.abs(c) : " + " + c);
+    const x0Display = x0 < 0 ? MINUS + Math.abs(x0) : String(x0);
+    return "f(x) = " + formatMono(a, 2) + bxPart + cPart + "   [at x = " + x0Display + "]";
+  }
+
+  function q_L2_tangentLine() {
+    const { a, b, c, x0, m } = genParabolaAndPoint();
+    // y-intercept of the tangent line simplifies to c - a*x0^2 (always an integer
+    // since a, c, x0 are integers) — see NOTES.md-style derivation in commit msg.
+    const yInt = c - a * x0 * x0;
+    const b1 = makeOptions({ label: numToStr(m), val: m }, numDistractors(m, [-1, 1, 2, -2, a, -a, b, -b]));
+    const b2 = makeOptions({ label: numToStr(yInt), val: yInt }, numDistractors(yInt, [-1, 1, 2, -2, c, -c, a, -a]));
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: parabolaPromptString(a, b, c, x0) + " — find the TANGENT line",
+      hint: "Slope = f′(x₀). Y-intercept = f(x₀) − slope·x₀ (evaluate the point, then slide back to x = 0).",
+      renderTemplate: "Tangent line: y = {b1}x + {b2}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
+      ]
+    };
+  }
+
+  function fmtNormalSlope(mm) {
+    if (mm === 1) return MINUS + "1";
+    if (mm === -1) return "1";
+    const sign = mm > 0 ? MINUS : "";
+    return sign + "1/" + Math.abs(mm);
+  }
+
+  function q_L2_normalLine() {
+    const { a, b, c, x0, m } = genParabolaAndPoint();
+    const b1 = makeOptions({ label: numToStr(m), val: "m_" + m }, numDistractors(m, [-1, 1, 2, -2, a, -a, b, -b]).map(d => ({ label: d.label, val: "m_" + d.val })));
+    const distractorMs = [m + 1, m - 1, -m, m * 2].filter(v => v !== m && v !== 0);
+    const b2 = makeOptions(
+      { label: fmtNormalSlope(m), val: "n_" + m },
+      distractorMs.map(dm => ({ label: fmtNormalSlope(dm), val: "n_" + dm }))
+    );
+    return {
+      level: 2, type: "blanks",
+      renderPrompt: parabolaPromptString(a, b, c, x0) + " — find the NORMAL line's slope",
+      hint: "First find the tangent slope f′(x₀). The normal line is perpendicular, so its slope is the negative reciprocal: −1/m.",
+      renderTemplate: "Tangent slope = {b1}     Normal slope = {b2}",
+      blanks: [
+        { key: "b1", options: b1.options, correctIndex: b1.correctIndex },
+        { key: "b2", options: b2.options, correctIndex: b2.correctIndex }
+      ]
+    };
+  }
+
+  const L2_TEMPLATES = [q_L2_powerRule, q_L2_powerPlusConst, q_L2_productPattern, q_L2_quotientPattern, q_L2_chainRule, q_L2_simpleProduct, q_L2_simpleQuotient, q_L2_simpleChainSum, q_L2_tangentLine, q_L2_normalLine];
 
   function generateLevel2(numQuestions) {
     numQuestions = numQuestions || 5;
