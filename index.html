@@ -179,6 +179,7 @@
   .fn-crit-line { stroke: var(--navy); stroke-width: 1; stroke-dasharray: 3,3; opacity: 0.5; }
   .fn-dot-f { fill: var(--blue); }
   .fn-dot-df { fill: #e08a2b; }
+  .fn-hole { fill: #f7f9fc; stroke: var(--blue); stroke-width: 2; }
   .fn-legend { font: 700 9px/1 "Cambria Math", Cambria, Georgia, serif; }
   .fn-legend-f { fill: var(--blue); }
   .fn-legend-df { fill: #e08a2b; }
@@ -1622,7 +1623,8 @@
     const opts = makeOptions({ label: numToStr(val), val }, numDistractors(val, [-1, 1, A, -A, B]));
     return {
       fLabel: "lim(x→" + numToStr(x0) + ") [" + formatQuadratic(A, B, C) + "]",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      graph: { kind: "limit-continuous", fn: x => A * x * x + B * x + C, x0, val, xMin: x0 - 5, xMax: x0 + 5 }
     };
   }
 
@@ -1638,9 +1640,13 @@
     const opts = makeOptions({ label: numToStr(val), val }, numDistractors(val, [-1, 1, 2, -2]));
     const numPart = "(x " + (N < 0 ? MINUS + " " + Math.abs(N) : "+ " + N) + ")";
     const denomPart = "(x " + (D < 0 ? MINUS + " " + Math.abs(D) : "+ " + D) + ")";
+    const asym = -D;
+    let gxMin = x0 - 5, gxMax = x0 + 5;
+    if (x0 > asym) gxMin = Math.max(gxMin, asym + 0.5); else gxMax = Math.min(gxMax, asym - 0.5);
     return {
       fLabel: "lim(x→" + numToStr(x0) + ") " + numPart + "/" + denomPart,
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      graph: { kind: "limit-continuous", fn: x => (x + N) / (x + D), x0, val, xMin: gxMin, xMax: gxMax }
     };
   }
 
@@ -1654,7 +1660,8 @@
     const denomPart = "(x " + (x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0) + ")";
     return {
       fLabel: "lim(x→" + numToStr(x0) + ") (x² " + MINUS + " " + r2 + ")/" + denomPart,
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      graph: { kind: "limit-hole", fn: x => (x * x - r2) / (x - x0), x0, val, xMin: x0 - 5, xMax: x0 + 5 }
     };
   }
 
@@ -1669,7 +1676,8 @@
     const denomPart = "(x " + (x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0) + ")";
     return {
       fLabel: "lim(x→" + numToStr(x0) + ") (" + formatQuadratic(1, B, C) + ")/" + denomPart,
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      graph: { kind: "limit-hole", fn: x => (x * x + B * x + C) / (x - x0), x0, val, xMin: x0 - 5, xMax: x0 + 5 }
     };
   }
 
@@ -1684,7 +1692,11 @@
     const options = shuffle([correct, ...chosen]);
     return {
       fLabel: "lim(x→0) (√(x + " + k + ") " + MINUS + " √" + k + ")/x",
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      graph: {
+        kind: "limit-hole", fn: x => (Math.sqrt(x + k) - Math.sqrt(k)) / x, x0: 0, val: 1 / (2 * m),
+        valLabel: correct, xMin: -Math.min(k - 0.5, 4), xMax: 6
+      }
     };
   }
 
@@ -1708,7 +1720,11 @@
     return {
       fLabel: "f(x) = { x" + pPart + "  if x < " + numToStr(x0) + " ;  x²" + qPart + "  if x ≥ " + numToStr(x0) +
         " }.   Find lim(x→" + numToStr(x0) + sideSymbol + ") f(x)",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      graph: {
+        kind: "limit-onesided", fnLeft: x => x + p, fnRight: x => x * x + q, x0, leftVal, rightVal,
+        correctVal, fromRight, xMin: x0 - 5, xMax: x0 + 5
+      }
     };
   }
 
@@ -1726,7 +1742,8 @@
     const denomPart = "(x " + (x0 < 0 ? "+ " + Math.abs(x0) : MINUS + " " + x0) + ")";
     return {
       fLabel: "lim(x→" + numToStr(x0) + sideSymbol + ") " + numToStr(k) + "/" + denomPart,
-      options, correctIndex: options.indexOf(correct)
+      options, correctIndex: options.indexOf(correct),
+      graph: { kind: "limit-infinite", k, x0, fromRight, sign: overallSign }
     };
   }
 
@@ -3143,11 +3160,204 @@
       </svg>`;
   }
 
+  // Continuous limit (direct substitution): f is defined and continuous at
+  // x0, so the limit is literally the point on the curve. Two dots slide in
+  // from either side and land exactly on it.
+  function limitContinuousSvg(g, animated) {
+    const N = 48;
+    const pts = samplePoints(g.fn, g.xMin, g.xMax, N);
+    if (pts.length < 2) return "";
+    const ys = pts.map(p => p[1]);
+    let yMin = Math.min(...ys), yMax = Math.max(...ys);
+    if (yMax - yMin < 1e-6) { yMax += 1; yMin -= 1; }
+    const X = x => GRAPH_PAD + (x - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = y => GRAPH_H - GRAPH_PAD - (y - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const cPx = toPixels(pts, g.xMin, g.xMax, yMin, yMax);
+    const x0px = X(g.x0), y0px = Y(g.val);
+    let dots = "", label = "";
+    if (animated) {
+      const room = Math.max(g.xMax - g.x0, g.x0 - g.xMin);
+      const hEnd = room * 0.02, hMax = room * 0.8;
+      const hs = [];
+      for (let i = 0; i <= SWEEP_STEPS; i++) {
+        const u = i / SWEEP_STEPS;
+        hs.push(hEnd + (hMax - hEnd) * (1 - u) * (1 - u));
+      }
+      for (let i = 0; i < SWEEP_HOLD + 6; i++) hs.push(hEnd);
+      const lxs = hs.map(h => Math.max(g.xMin, g.x0 - h));
+      const rxs = hs.map(h => Math.min(g.xMax, g.x0 + h));
+      const lys = lxs.map(g.fn), rys = rxs.map(g.fn);
+      dots = `
+        <circle cx="0" cy="0" r="3.4" class="fn-dot-q">${animAttr("cx", lxs.map(X))}${animAttr("cy", lys.map(Y))}</circle>
+        <circle cx="0" cy="0" r="3.4" class="fn-dot-q">${animAttr("cx", rxs.map(X))}${animAttr("cy", rys.map(Y))}</circle>`;
+      label = `<text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-hit" text-anchor="end" opacity="0">limit = ${QL.numToStr(g.val)} ✓${animFadeIn()}</text>`;
+    }
+    const legY = cPx.some(([x, y]) => x < 150 && y < 34) ? GRAPH_H - 30 : 2;
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        <path d="${pathFrom(cPx)}" class="fn-curve-f" />
+        ${dots}
+        <circle cx="${x0px.toFixed(1)}" cy="${y0px.toFixed(1)}" r="3.8" class="fn-dot-f" />
+        ${label}
+        <rect x="0" y="${legY}" width="150" height="16" class="fn-legend-bg" />
+        <text x="6" y="${legY + 11}" class="fn-legend fn-legend-f">— f(x), continuous at x0</text>
+      </svg>`;
+  }
+
+  // Removable-discontinuity limit (factoring / rationalizing): f simplifies
+  // to a smooth curve everywhere EXCEPT the single point x0, which is
+  // deliberately excluded from both sampled halves so the plotted curve has
+  // a real visual gap — then an open ring marks where the limit "would be."
+  function limitHoleSvg(g, animated) {
+    const gap = (g.xMax - g.xMin) * 0.035;
+    const leftPts = samplePoints(g.fn, g.xMin, g.x0 - gap, 24);
+    const rightPts = samplePoints(g.fn, g.x0 + gap, g.xMax, 24);
+    if (leftPts.length < 2 || rightPts.length < 2) return "";
+    const allYs = leftPts.concat(rightPts).map(p => p[1]).concat([g.val]);
+    let yMin = Math.min(...allYs), yMax = Math.max(...allYs);
+    if (yMax - yMin < 1e-6) { yMax += 1; yMin -= 1; }
+    const X = x => GRAPH_PAD + (x - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = y => GRAPH_H - GRAPH_PAD - (y - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const leftPx = toPixels(leftPts, g.xMin, g.xMax, yMin, yMax);
+    const rightPx = toPixels(rightPts, g.xMin, g.xMax, yMin, yMax);
+    const x0px = X(g.x0), y0px = Y(g.val);
+    let dots = "", label = "";
+    if (animated) {
+      const room = Math.max(g.xMax - g.x0, g.x0 - g.xMin);
+      const hEnd = room * 0.04, hMax = room * 0.8;
+      const hs = [];
+      for (let i = 0; i <= SWEEP_STEPS; i++) {
+        const u = i / SWEEP_STEPS;
+        hs.push(hEnd + (hMax - hEnd) * (1 - u) * (1 - u));
+      }
+      for (let i = 0; i < SWEEP_HOLD + 6; i++) hs.push(hEnd);
+      const lxs = hs.map(h => Math.max(g.xMin, g.x0 - h));
+      const rxs = hs.map(h => Math.min(g.xMax, g.x0 + h));
+      const lys = lxs.map(g.fn), rys = rxs.map(g.fn);
+      dots = `
+        <circle cx="0" cy="0" r="3.4" class="fn-dot-q">${animAttr("cx", lxs.map(X))}${animAttr("cy", lys.map(Y))}</circle>
+        <circle cx="0" cy="0" r="3.4" class="fn-dot-q">${animAttr("cx", rxs.map(X))}${animAttr("cy", rys.map(Y))}</circle>`;
+      label = `<text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-hit" text-anchor="end" opacity="0">limit = ${g.valLabel || QL.numToStr(g.val)} ✓${animFadeIn()}</text>`;
+    }
+    const legY = leftPx.concat(rightPx).some(([x, y]) => x < 150 && y < 34) ? GRAPH_H - 30 : 2;
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        <path d="${pathFrom(leftPx)}" class="fn-curve-f" />
+        <path d="${pathFrom(rightPx)}" class="fn-curve-f" />
+        ${dots}
+        <circle cx="${x0px.toFixed(1)}" cy="${y0px.toFixed(1)}" r="4.4" class="fn-hole" />
+        ${label}
+        <rect x="0" y="${legY}" width="150" height="16" class="fn-legend-bg" />
+        <text x="6" y="${legY + 11}" class="fn-legend fn-legend-f">— f(x); open ring = undefined at x0</text>
+      </svg>`;
+  }
+
+  // One-sided (piecewise) limit: draws both branches with the classic
+  // open/filled-circle convention at the split, and the animated dot only
+  // approaches from whichever side the question actually asked about.
+  function limitOneSidedSvg(g, animated) {
+    const N = 32;
+    const leftPts = samplePoints(g.fnLeft, g.xMin, g.x0, N);
+    const rightPts = samplePoints(g.fnRight, g.x0, g.xMax, N);
+    if (leftPts.length < 2 || rightPts.length < 2) return "";
+    const allYs = leftPts.concat(rightPts).map(p => p[1]);
+    let yMin = Math.min(...allYs), yMax = Math.max(...allYs);
+    if (yMax - yMin < 1e-6) { yMax += 1; yMin -= 1; }
+    const X = x => GRAPH_PAD + (x - g.xMin) / ((g.xMax - g.xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = y => GRAPH_H - GRAPH_PAD - (y - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const leftPx = toPixels(leftPts, g.xMin, g.xMax, yMin, yMax);
+    const rightPx = toPixels(rightPts, g.xMin, g.xMax, yMin, yMax);
+    const x0px = X(g.x0);
+    const leftEndY = Y(g.leftVal), rightStartY = Y(g.rightVal);
+    let dot = "", label = "";
+    if (animated) {
+      const side = g.fromRight ? 1 : -1;
+      const fn = g.fromRight ? g.fnRight : g.fnLeft;
+      const room = g.fromRight ? (g.xMax - g.x0) : (g.x0 - g.xMin);
+      const hEnd = room * 0.03, hMax = room * 0.85;
+      const hs = [];
+      for (let i = 0; i <= SWEEP_STEPS; i++) {
+        const u = i / SWEEP_STEPS;
+        hs.push(hEnd + (hMax - hEnd) * (1 - u) * (1 - u));
+      }
+      for (let i = 0; i < SWEEP_HOLD + 6; i++) hs.push(hEnd);
+      const qxs = hs.map(h => g.x0 + side * h);
+      const qys = qxs.map(fn);
+      dot = `<circle cx="0" cy="0" r="3.6" class="fn-dot-q">${animAttr("cx", qxs.map(X))}${animAttr("cy", qys.map(Y))}</circle>`;
+      label = `<text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-hit" text-anchor="end" opacity="0">limit = ${QL.numToStr(g.correctVal)} ✓${animFadeIn()}</text>`;
+    }
+    const legY = leftPx.concat(rightPx).some(([x, y]) => x < 150 && y < 34) ? GRAPH_H - 30 : 2;
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        <path d="${pathFrom(leftPx)}" class="fn-curve-f" />
+        <path d="${pathFrom(rightPx)}" class="fn-curve-df" />
+        ${dot}
+        <circle cx="${x0px.toFixed(1)}" cy="${leftEndY.toFixed(1)}" r="4" class="fn-hole" />
+        <circle cx="${x0px.toFixed(1)}" cy="${rightStartY.toFixed(1)}" r="3.6" class="fn-dot-df" />
+        ${label}
+        <rect x="0" y="${legY}" width="150" height="28" class="fn-legend-bg" />
+        <text x="6" y="${legY + 10}" class="fn-legend fn-legend-f">— left piece (x &lt; x0)</text>
+        <text x="6" y="${legY + 24}" class="fn-legend fn-legend-df">— right piece (x ≥ x0)</text>
+      </svg>`;
+  }
+
+  // Infinite (vertical-asymptote) limit: only the approach side is sampled,
+  // and the function is capped near the asymptote so the curve visibly
+  // "shoots off" the box edge instead of blowing up the whole y-scale — the
+  // same visual language as a real graphing calculator hitting a vertical
+  // asymptote.
+  function limitInfiniteSvg(g, animated) {
+    const width = 4;
+    const side = g.fromRight ? 1 : -1;
+    const xMin = g.fromRight ? g.x0 : g.x0 - width;
+    const xMax = g.fromRight ? g.x0 + width : g.x0;
+    const CAP = Math.max(24, Math.abs(g.k) * 6);
+    const dispFn = x => {
+      const y = g.k / (x - g.x0);
+      return Math.abs(y) > CAP ? NaN : y;
+    };
+    const pts = samplePoints(dispFn, xMin, xMax, 60);
+    if (pts.length < 2) return "";
+    const yMin = -CAP, yMax = CAP;
+    const X = x => GRAPH_PAD + (x - xMin) / ((xMax - xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = y => GRAPH_H - GRAPH_PAD - (y - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const cPx = toPixels(pts, xMin, xMax, yMin, yMax);
+    const asymX = X(g.x0);
+    let dot = "", label = "";
+    if (animated) {
+      const hs = [];
+      for (let i = 0; i <= SWEEP_STEPS; i++) {
+        const u = i / SWEEP_STEPS;
+        hs.push(width * 0.9 * (1 - u) * (1 - u));
+      }
+      for (let i = 0; i < SWEEP_HOLD + 6; i++) hs.push(0.02);
+      const qxs = hs.map(h => g.x0 + side * Math.max(h, 0.02));
+      const qys = qxs.map(x => Math.max(-CAP, Math.min(CAP, g.k / (x - g.x0))));
+      dot = `<circle cx="0" cy="0" r="3.6" class="fn-dot-f">${animAttr("cx", qxs.map(X))}${animAttr("cy", qys.map(Y))}</circle>`;
+      label = `<text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-hit" text-anchor="end" opacity="0">shoots to ${g.sign > 0 ? "+∞" : "−∞"}${animFadeIn()}</text>`;
+    }
+    const legY = g.sign > 0 ? GRAPH_H - 30 : 2;
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        <line x1="${asymX.toFixed(1)}" y1="4" x2="${asymX.toFixed(1)}" y2="${GRAPH_H - 4}" class="fn-crit-line" stroke-dasharray="3,3" />
+        <path d="${pathFrom(cPx)}" class="fn-curve-f" />
+        ${dot}
+        ${label}
+        <rect x="0" y="${legY}" width="150" height="16" class="fn-legend-bg" />
+        <text x="6" y="${legY + 11}" class="fn-legend fn-legend-f">— f(x); dashed = x = ${QL.numToStr(g.x0)}</text>
+      </svg>`;
+  }
+
   function graphSvgFor(q, animated) {
     if (!q.graph) return "";
-    if (q.graph.kind === "fn-deriv") return functionGraphSvg(q.graph, animated);
-    if (q.graph.kind === "curve-line") return curveLineSvg(q.graph, animated);
-    if (q.graph.kind === "implicit-ellipse") return implicitEllipseSvg(q.graph, animated);
+    const k = q.graph.kind;
+    if (k === "fn-deriv") return functionGraphSvg(q.graph, animated);
+    if (k === "curve-line") return curveLineSvg(q.graph, animated);
+    if (k === "implicit-ellipse") return implicitEllipseSvg(q.graph, animated);
+    if (k === "limit-continuous") return limitContinuousSvg(q.graph, animated);
+    if (k === "limit-hole") return limitHoleSvg(q.graph, animated);
+    if (k === "limit-onesided") return limitOneSidedSvg(q.graph, animated);
+    if (k === "limit-infinite") return limitInfiniteSvg(q.graph, animated);
     return "";
   }
 
@@ -3417,9 +3627,17 @@
     const shapeHtml = (isFn && q.shape) ? shapeSvgFor(q.shape, ts) : "";
     const graphHtml = graphSvgFor(q, true);
     if (!shapeHtml && !graphHtml) return "";
+    const GRAPH_TITLES = {
+      "curve-line": "watch the secant collapse onto the tangent",
+      "implicit-ellipse": "watch the secant collapse onto the tangent",
+      "limit-continuous": "watch x approach from both sides",
+      "limit-hole": "watch x approach the hole from both sides",
+      "limit-onesided": "watch x approach from the stated side only",
+      "limit-infinite": "watch the curve shoot toward the asymptote"
+    };
     const title = isFn
       ? "watch it move — the best shape is where f′ hits 0"
-      : "watch the secant collapse onto the tangent";
+      : (GRAPH_TITLES[q.graph.kind] || "watch the secant collapse onto the tangent");
     return `<div class="q-graph">
         <div class="q-graph-title">${title}</div>
         <div class="anim-pair">${shapeHtml}${graphHtml}</div>
