@@ -2219,7 +2219,8 @@
     );
     return {
       fLabel: "At the point (" + numToStr(x0) + ", " + numToStr(y0) + ") on the curve x² " + MINUS + " xy + y² = " + C + ", find the slope of the tangent line.",
-      options: opts.options, correctIndex: opts.correctIndex
+      options: opts.options, correctIndex: opts.correctIndex,
+      graph: { kind: "implicit-ellipse", constVal: C, x0, y0, slope: (y0 - 2 * x0) / denom }
     };
   }
 
@@ -3068,10 +3069,85 @@
       </svg>`;
   }
 
+  // Full implicit curve x² − xy + y² = const, plus the tangent line at the
+  // given point — for the Implicit Differentiation exam's point-slope
+  // question. This quadratic form's discriminant B²−4AC = 1−4 = −3 < 0, so
+  // it's always an ellipse; solving for y via the quadratic formula gives an
+  // exact closed form (no general contour-tracing needed): y = (x ±
+  // √(4C−3x²))/2, an upper and a lower branch. The branch touching (x0, y0)
+  // is picked out algebraically — plugging C = x0²−x0·y0+y0² into the
+  // discriminant collapses it to a perfect square, (x0−2y0)², so one of the
+  // two ± branches lands on y0 EXACTLY (verified below, not just sampled):
+  // sign = +1 when y0 > x0/2, else −1. That branch is then treated as a
+  // single-valued function for the same Q→P secant animation the explicit
+  // curve-line case uses.
+  function implicitEllipseSvg(g, animated) {
+    const R = Math.sqrt(4 * g.constVal / 3);
+    const xMin = -R * 0.985, xMax = R * 0.985; // stay off the sqrt(0) cusp where the branches meet
+    const branchY = (x, sign) => {
+      const disc = 4 * g.constVal - 3 * x * x;
+      return disc < 0 ? NaN : (x + sign * Math.sqrt(disc)) / 2;
+    };
+    const sign0 = g.y0 - g.x0 / 2 >= 0 ? 1 : -1;
+    const branchFn = x => branchY(x, sign0);
+    const N = 48;
+    const upperPts = samplePoints(x => branchY(x, 1), xMin, xMax, N);
+    const lowerPts = samplePoints(x => branchY(x, -1), xMin, xMax, N);
+    if (upperPts.length < 2 || lowerPts.length < 2) return "";
+    let yMin = Math.min(...upperPts.map(p => p[1]), ...lowerPts.map(p => p[1]));
+    let yMax = Math.max(...upperPts.map(p => p[1]), ...lowerPts.map(p => p[1]));
+    const ly1 = g.y0 + g.slope * (xMin - g.x0), ly2 = g.y0 + g.slope * (xMax - g.x0);
+    yMin = Math.min(yMin, ly1, ly2); yMax = Math.max(yMax, ly1, ly2);
+    if (yMax - yMin < 1e-6) { yMax += 1; yMin -= 1; }
+    const X = x => GRAPH_PAD + (x - xMin) / ((xMax - xMin) || 1) * (GRAPH_W - 2 * GRAPH_PAD);
+    const Y = y => GRAPH_H - GRAPH_PAD - (y - yMin) / ((yMax - yMin) || 1) * (GRAPH_H - 2 * GRAPH_PAD);
+    const upperPx = toPixels(upperPts, xMin, xMax, yMin, yMax);
+    const lowerPx = toPixels(lowerPts, xMin, xMax, yMin, yMax);
+    const x0px = X(g.x0), y0px = Y(g.y0);
+    const linePx = toPixels([[xMin, ly1], [xMax, ly2]], xMin, xMax, yMin, yMax);
+    const legY = upperPx.concat(lowerPx).some(([x, y]) => x < 116 && y < 34) ? GRAPH_H - 30 : 2;
+    const uid = "clip" + (++svgUid);
+    let secant = "";
+    if (animated) {
+      const roomR = xMax - g.x0, roomL = g.x0 - xMin;
+      const side = roomR >= roomL ? 1 : -1;
+      const room = Math.max(roomR, roomL);
+      const hEnd = room * 0.02, hMax = room * 0.8;
+      const hs = [];
+      for (let i = 0; i <= SWEEP_STEPS; i++) {
+        const u = i / SWEEP_STEPS;
+        hs.push(hEnd + (hMax - hEnd) * (1 - u) * (1 - u));   // eases INTO the limit
+      }
+      for (let i = 0; i < SWEEP_HOLD + 6; i++) hs.push(hEnd);
+      const qxs = hs.map(h => Math.max(xMin, Math.min(xMax, g.x0 + side * h)));
+      const qys = qxs.map(branchFn);
+      const ms = qxs.map((x, i) => (qys[i] - g.y0) / ((x - g.x0) || 1e-9));
+      secant = `
+        <line x1="${GRAPH_PAD}" y1="0" x2="${GRAPH_W - GRAPH_PAD}" y2="0" class="fn-line-secant">${animAttr("y1", ms.map(m => Y(g.y0 + m * (xMin - g.x0))))}${animAttr("y2", ms.map(m => Y(g.y0 + m * (xMax - g.x0))))}</line>
+        <circle cx="0" cy="0" r="3.2" class="fn-dot-q">${animAttr("cx", qxs.map(X))}${animAttr("cy", qys.map(Y))}</circle>
+        <text x="${GRAPH_W - 6}" y="${GRAPH_H - 6}" class="fn-legend fn-legend-secant" text-anchor="end">Q → P: secant → tangent</text>`;
+    }
+    return `
+      <svg class="fn-graph-svg" viewBox="0 0 ${GRAPH_W} ${GRAPH_H}">
+        <defs><clipPath id="${uid}"><rect x="1" y="1" width="${GRAPH_W - 2}" height="${GRAPH_H - 2}" /></clipPath></defs>
+        <g clip-path="url(#${uid})">
+          <path d="${pathFrom(upperPx)}" class="fn-curve-f" />
+          <path d="${pathFrom(lowerPx)}" class="fn-curve-f" />
+          ${secant}
+          <path d="${pathFrom(linePx)}" class="fn-line-tangent" ${animated ? 'opacity="0"' : ""}>${animated ? animFadeIn() : ""}</path>
+        </g>
+        <circle cx="${x0px.toFixed(1)}" cy="${y0px.toFixed(1)}" r="3.4" class="fn-dot-f" />
+        <rect x="0" y="${legY}" width="110" height="28" class="fn-legend-bg" />
+        <text x="6" y="${legY + 10}" class="fn-legend fn-legend-f">— curve</text>
+        <text x="6" y="${legY + 24}" class="fn-legend fn-legend-tangent">— tangent line</text>
+      </svg>`;
+  }
+
   function graphSvgFor(q, animated) {
     if (!q.graph) return "";
     if (q.graph.kind === "fn-deriv") return functionGraphSvg(q.graph, animated);
     if (q.graph.kind === "curve-line") return curveLineSvg(q.graph, animated);
+    if (q.graph.kind === "implicit-ellipse") return implicitEllipseSvg(q.graph, animated);
     return "";
   }
 
